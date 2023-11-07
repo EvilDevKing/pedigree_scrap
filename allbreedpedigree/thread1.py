@@ -32,9 +32,8 @@ def getNamesFromGoogleSheet(sheetId):
         sheet_info['properties'][sheet_name]['header'] = header
         sheet_info['properties'][sheet_name]['rows'] = []
         sheet_info['properties'][sheet_name]['horse_names'] = []
-        values = [value for value in values if value != []]
         for row in values:
-            if row == []:
+            if len(row) == 0:
                 sheet_info['properties'][sheet_name]['horse_names'].append("")
                 sheet_info['properties'][sheet_name]['rows'].append([])
             else:
@@ -124,32 +123,43 @@ def fetchDataFromWebsite(sheetId):
         cnt = 0
         for index, name in enumerate(horse_names):
             sheet_data = []
-            WebDriverWait(browser, 10).until(ec.element_to_be_clickable((By.XPATH, "//div[@id='header-search-input-helper']"))).click()
-            input_elem = WebDriverWait(browser, 10).until(ec.element_to_be_clickable((By.XPATH, "//input[@id='header-search-input']")))
-            input_elem.send_keys(Keys.CONTROL + "a")
-            input_elem.send_keys(Keys.DELETE)
-            input_elem.send_keys(name, Keys.ENTER)
-            soup = BeautifulSoup(browser.page_source, 'html.parser')
-            try:
-                table = soup.find(class_="pedigree-table").find("tbody")
-                sheet_data.append(getSheetDataFrom(table, rows[cnt]))
-            except:
+            if name != "":
+                WebDriverWait(browser, 10).until(ec.element_to_be_clickable((By.XPATH, "//div[@id='header-search-input-helper']"))).click()
+                input_elem = WebDriverWait(browser, 10).until(ec.element_to_be_clickable((By.XPATH, "//input[@id='header-search-input']")))
+                input_elem.send_keys(Keys.CONTROL + "a")
+                input_elem.send_keys(Keys.DELETE)
+                input_elem.send_keys(name, Keys.ENTER)
+                soup = BeautifulSoup(browser.page_source, 'html.parser')
                 try:
-                    table = soup.find(class_="layout-table").find("tbody")
-                    tds = table.select("td:nth-child(1)")
-                    txt_vals = []
-                    links = []
-                    for td in tds:
-                        txt_vals.append(td.text.upper())
-                        links.append(td.find("a").get("href"))
-                    indexes = [i for i, x in enumerate(txt_vals) if x.lower() == name.lower()]
-                    if len(indexes) == 1:
-                        browser.get(links[0])
-                        WebDriverWait(browser, 10).until(lambda browser: browser.execute_script('return document.readyState') == 'complete')
-                        soup = BeautifulSoup(browser.page_source, 'html.parser')
-                        table = soup.find(class_="pedigree-table").find("tbody")
-                        sheet_data.append(getSheetDataFrom(table, rows[cnt]))
-                    else:
+                    table = soup.find(class_="pedigree-table").find("tbody")
+                    sheet_data.append(getSheetDataFrom(table, rows[cnt]))
+                except:
+                    try:
+                        table = soup.find(class_="layout-table").find("tbody")
+                        tds = table.select("td:nth-child(1)")
+                        txt_vals = []
+                        links = []
+                        for td in tds:
+                            txt_vals.append(td.text.upper())
+                            links.append(td.find("a").get("href"))
+                        indexes = [i for i, x in enumerate(txt_vals) if x.lower() == name.lower()]
+                        if len(indexes) == 1:
+                            browser.get(links[0])
+                            WebDriverWait(browser, 10).until(lambda browser: browser.execute_script('return document.readyState') == 'complete')
+                            soup = BeautifulSoup(browser.page_source, 'html.parser')
+                            table = soup.find(class_="pedigree-table").find("tbody")
+                            sheet_data.append(getSheetDataFrom(table, rows[cnt]))
+                        else:
+                            i = header.index('Horse')
+                            while True:
+                                rows[cnt].append("")
+                                i += 1
+                                if i > len(header):
+                                    break
+                            sheet_data.append(rows[cnt])
+                            print("Not found (" + name + ") in https://beta.allbreedpedigree.com/")
+                            searchName(name)
+                    except:
                         i = header.index('Horse')
                         while True:
                             rows[cnt].append("")
@@ -159,27 +169,17 @@ def fetchDataFromWebsite(sheetId):
                         sheet_data.append(rows[cnt])
                         print("Not found (" + name + ") in https://beta.allbreedpedigree.com/")
                         searchName(name)
-                except:
-                    i = header.index('Horse')
-                    while True:
-                        rows[cnt].append("")
-                        i += 1
-                        if i > len(header):
-                            break
-                    sheet_data.append(rows[cnt])
-                    print("Not found (" + name + ") in https://beta.allbreedpedigree.com/")
-                    searchName(name)
+                service.spreadsheets().values().update(
+                    spreadsheetId=sheetId,
+                    valueInputOption='RAW',
+                    range="%s!A%s:Z%s" % (sheet_name, str(index+2), str(index+2)),
+                    body=dict(
+                        majorDimension='ROWS',
+                        values=sheet_data)
+                ).execute()
+                time.sleep(5)
             cnt += 1
             print("Processed " + str(cnt))
-            service.spreadsheets().values().update(
-                spreadsheetId=sheetId,
-                valueInputOption='RAW',
-                range="%s!A%s:Z%s" % (sheet_name, str(index+2), str(index+2)),
-                body=dict(
-                    majorDimension='ROWS',
-                    values=sheet_data)
-            ).execute()
-            time.sleep(5)
     browser.quit()
 
 def start():

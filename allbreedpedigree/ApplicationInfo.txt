@@ -1,0 +1,5 @@
+Application Home Page Link: https://beta.allbreedpedigree
+Application Privacy Policy Link: https://beta.allbreedpedigree/privacy_policy
+Youtube Link: https://www.youtube.com/watch?v=njDGaVnz9Z8
+Reason for using Google Sheet API: I will use Google Sheet API for manage spreadsheets as CRUD operation.
+Reason for using Gmail API: I will use Gmail API for manage my mailbox for CRUD operation via program.

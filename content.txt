@@ -1,0 +1,295 @@
+#
+Horse 
+Age, Color, Sex
+Sire
+Dam, Dam's Sire
+Owner / Rider
+Breeder
+Carry to Open
+Youth Incentive
+APHA Chrome Buckle
+2nd Go
+Owner Stallion Breeder 
+157
+Blingolena                                                                                                             
+2018 Sorrel Gelding                                                                             
+Blazin Jetolena                                                                                
+Dash Of Bling, Dash Ta Fame
+Carlee Otero                                                              
+Collinsville, TX                                                              
+Carlee Otero
+Busby Quarterhorse LLC
+Millsap, TX
+O
+14.684
+1D-1
+$5,100
+$638
+$638
+129
+MJ Segers Fast Lane
+2017 Brown Mare
+The Goodbye Lane
+SKS Running Faucet, Diamond Faucet
+Grant & Rayel Little
+Maricopa, AZ
+Brandon Cullins
+Mark & Linda Jarvis
+Spanish Fork, UT
+O
+14.768
+1D-2
+$3,400
+$425
+$425
+158
+SR Stairway Taheaven                                                                  
+2016 Palomino Mare                                                                  
+JL Dash Ta Heaven                                                                           
+Cool To Be Famous, Sun Frost
+Addyson Kardosz                                             
+Gonzales, TX                                                       
+Addyson Kardosz
+Jud Little
+Ardmore, OK
+O
+Y
+14.773
+1D-3
+$2,210
+$276
+$276
+90
+Firewaters Fortune
+2018 Chestnut Stallion
+Tres Fortunes
+Happy To Run Em, Firewaterontherocks
+Mike Stephens
+Covington, LA
+Natalie Stephens
+Jo & Latricia Duke
+Three Rivers, TX
+O
+14.796
+1D-4
+$1,700
+$213
+$213
+70
+Gotta Be Heavenly
+2017 Sorrel Gelding
+JL Dash Ta Heaven
+Gotta Be A Red Nick, Dr Nick Bar
+Caroline Boucher
+Aubrey, TX
+Caroline Boucher
+Jud Little
+Ardmore, OK
+O
+14.920
+1D-5
+$1,190
+$149
+$149
+66
+Baymee
+2018 Bay Mare
+Ivory James
+Three And Out, Tres Seis
+Tricia Aldridge
+Sanger, TX
+Jamey Hunt
+Amy Schimke
+Wessington Springs, SD
+O
+14.938
+1D-6
+$1,020
+$128
+$128
+87
+Heavenly Red
+2016 Sorrel Mare
+JL Dash Ta Heaven
+Reneoni, Rene Dan Jet
+Godspeed Performance Horses
+Fayetteville, GA
+Chloe Gray
+Jud Little
+Ardmore, OK
+O
+14.975
+1D-7
+$850
+$106
+$106
+40
+HP Feel The Fame
+2018 Chestnut Mare
+Feel The Sting
+Rods Last Ladybug, Sharp Rodney
+Ryann Pedone
+Sunset, TX
+Ryann Pedone
+Jason Martin & Charlie Cole
+Pilot Point, TX
+O
+15.001
+1D-8
+$680
+$85
+$85
+77
+Thirty Six Roses
+2017 Sorrel Mare
+Tres Seis
+Black Rosalita, Sweet First Down
+Ryann Pedone
+Sunset, TX
+Ryann Pedone
+Erin Chrisman
+Abbeville, LA
+O
+15.047
+1D-9
+$510
+$64
+$64
+22
+Fast Flingin Dash
+2017 Bay Roan Gelding
+A Streak Of Fling
+Dash Ta Suz, Dash Ta Fame
+Steve Hurlbert
+Weatherford, TX
+Cheyenne Wimberley
+Steve Hurlbert
+Weatherford, TX
+O
+15.068
+1D-10
+$340
+$43
+$43
+116
+Milliondollastreaker
+2016 Bay Mare
+French Streaktovegas
+CC Cartel, Southern Cartel
+Cristi Copsey Gaffney
+Anselmo, NE
+Jodee Miller
+Pam Kennon
+Farmington, MO
+O
+15.102
+58
+M R Im On Fire Guys
+2017 Bay Roan Gelding
+French Streaktovegas
+N Fuego, Walk Thru Fire
+M R Performance Horses
+Bellville, TX
+Jodee Miller
+Stacey Dunn
+San Tan Valley, AZ
+O
+15.103
+13
+Cat Mai Flash
+2015 Brown Gelding
+Tres Seis
+Lulus Stoli, Stoli
+BryAnna Haluptzok
+Tenstrike, MN
+BryAnna Haluptzok
+Debby Singleton
+Sealy, TX
+O
+15.141
+145
+Sir Epic
+2018 Gray Gelding
+JL Sirocco
+So Very Epic, Epic Leader
+Dave & Lori Zabel
+Horace, ND
+Kassie Mowry
+Karma Loftin
+Dublin, TX
+O
+15.144
+161
+RR Harvey Have Mercy                                                              
+2017 Sorrel Gelding                                                                                         
+The Money Depot                                                                            
+Miss JB 0820, Chasin Firewater
+Robin Weaver                                                       
+Mamaffey, PA                                                              
+Ryann Pedone
+Joe & Dee Lynn Braman                                         
+Refugio, TX
+O
+15.153
+39
+KM Famous Sniper
+2016 Sorrel Gelding
+First Down French
+Dash Ta Fantasy, Dash Ta Fame
+Lilly Lohmann
+Winnsboro, TX
+Lilly Lohmann
+Katie McCaslan
+Raisin City, CA
+O
+Y
+15.186
+86
+Force The Goodbye
+2018 Brown Gelding
+The Goodbye Lane
+VF Forcit First, Burrs First Down
+Michael Boone
+Dublin, TX
+Kassie Mowry
+Janelle & Jason Blubaugh
+Newberg, OR
+O
+15.202
+15
+KN Born Alil French
+2016 Sorrel Mare
+French Streaktovegas
+KN Born This Way, Born Ta Be Famous
+Kevin & Patricia Charleston
+Reeds, MO
+Emma Charleston
+Kimi Nichols
+Brownwood, TX
+O
+15.237
+67
+French Streakof Fame
+2018 Bay Roan Mare
+Streakin Boon Dox
+Famed French Kiss, Dash Ta Fame
+Joe & Carla Spitz
+Lamar, CO
+Ashley Schafer
+Joe & Carla Spitz
+Lamar, CO
+O
+15.255
+8
+Eddie Stetson
+2018 Sorrel Gelding
+Eddie Stinson
+VF Burrs Alive, Burrs First Down
+Tiany Schuster & Edwin Cameron
+Krum, TX
+Jamey Hunt
+Victory Farms                                                                 
+Ada, OK
+O
+15.257
+Ruby Buckle Memphis Derby 2023

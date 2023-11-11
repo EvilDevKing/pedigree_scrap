@@ -14,7 +14,7 @@ def checkMailAndDownloadOrderFile():
 
             if pdf_cnt == int(t1_result):
                 os.remove("t1.txt")
-                createFileWith("t2.txt", str(pdf_cnt))
+                createFileWith("t2.txt", str(pdf_cnt), "w")
                 break
 
         # Fetch messages from inbox
@@ -27,22 +27,25 @@ def checkMailAndDownloadOrderFile():
             for message in messages:
                 msg_id = message['id']
                 msg_body = service.users().messages().get(userId='me', id=msg_id).execute()
-                for part in msg_body['payload']['parts']:
-                    if part['filename']:
-                        if 'data' in part['body']:
-                            data = part['body']['data']
-                        else:
-                            att_id = part['body']['attachmentId']
-                            att = service.users().messages().attachments().get(userId='me', messageId=msg_id, id=att_id).execute()
-                            data = att['data']
-                        file_data = base64.urlsafe_b64decode(data.encode('UTF-8'))
-                        filename = part['filename']
-                        
-                        createFileWith(ORDER_DIR_NAME + "/" + filename, file_data)
-                        pdf_cnt += 1
-                        print("Stored a pdf order file : " + filename)
-                service.users().messages().delete(userId='me', id=msg_id).execute()
-                print("Removed message : " + msg_id)
+                try:
+                    parts = msg_body['payload']['parts']
+                    for part in parts:
+                        if part['filename']:
+                            if 'data' in part['body']:
+                                data = part['body']['data']
+                            else:
+                                att_id = part['body']['attachmentId']
+                                att = service.users().messages().attachments().get(userId='me', messageId=msg_id, id=att_id).execute()
+                                data = att['data']
+                            file_data = base64.urlsafe_b64decode(data.encode('UTF-8'))
+                            filename = part['filename']
+                            
+                            createFileWith(ORDER_DIR_NAME + "/" + filename, file_data, 'wb')
+                            pdf_cnt += 1
+                            print("Stored a pdf order file : " + filename)
+                    service.users().messages().delete(userId='me', id=msg_id).execute()
+                    print("Removed message : " + msg_id)
+                except: continue
         time.sleep(3)
 
 def start():

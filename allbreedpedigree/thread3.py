@@ -98,7 +98,6 @@ def findSireFromSite(cn):
         browser = getGoogleDriver()
         browser.get(url)
         WebDriverWait(browser, 10).until(lambda browser: browser.execute_script('return document.readyState') == 'complete')
-        print("---- Started searching Sire of (" + cn + ") from https://beta.allbreedpedigree.com ----")
         WebDriverWait(browser, 10).until(ec.element_to_be_clickable((By.XPATH, "//button[@class='btn-close']"))).click()
     WebDriverWait(browser, 10).until(ec.element_to_be_clickable((By.XPATH, "//div[@id='header-search-input-helper']"))).click()
     input_elem = WebDriverWait(browser, 10).until(ec.element_to_be_clickable((By.XPATH, "//input[@id='header-search-input']")))
@@ -135,7 +134,7 @@ def updateGSData(file_path, sheetId):
     update_data = []
     ext_names = extractPdf(file_path)
     if ext_names is None: return
-    update_data.append(ext_names[0])
+    update_data.append(ext_names[0].title())
     pre_index_list = [1, 5, 3, 5, 7, 11, 9, 13]
     for i in pre_index_list:
         update_data.append(ext_names[i].title())
@@ -155,15 +154,16 @@ def updateGSData(file_path, sheetId):
         header = values[0]
         indexOfHorseHeader = header.index('Horse')
         for id, row in enumerate(values):
-            if update_data[0].lower() == row[indexOfHorseHeader].lower():
-                worksheet.values().update(
-                    spreadsheetId=sheetId,
-                    valueInputOption='RAW',
-                    range="%s!C%s:Z%s" % (sheet_name, str(id+1), str(id+1)),
-                    body=dict(
-                        majorDimension='ROWS',
-                        values=[update_data])
-                ).execute()
+            if len(row) != 0:
+                if update_data[0].lower() == row[indexOfHorseHeader].lower():
+                    worksheet.values().update(
+                        spreadsheetId=sheetId,
+                        valueInputOption='RAW',
+                        range="%s!A%s:Z%s" % (sheet_name, str(id+1), str(id+1)),
+                        body=dict(
+                            majorDimension='ROWS',
+                            values=[update_data])
+                    ).execute()
     time.sleep(2)
 def start():
     print("Third process started")

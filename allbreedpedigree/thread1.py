@@ -75,7 +75,7 @@ def searchName(horse_name):
     input_elem.click()
     input_elem.send_keys(Keys.CONTROL + "a")
     input_elem.send_keys(Keys.DELETE)
-    input_elem.send_keys("pascalmartin973@gmail.com")
+    input_elem.send_keys("brittany.holy@gmail.com")
     time.sleep(0.5)
     
     input_elem = WebDriverWait(browser, 10).until(ec.presence_of_element_located((By.XPATH, "//input[@id='txtHorseName']")))
@@ -192,5 +192,5 @@ def start():
     print("---- Fetch Done ----")
     print("Your sheet temporarily updated!")
     
-    createFileWith("t1.txt", str(success_research_names))
+    createFileWith("t1.txt", str(success_research_names), "w")
     print("Main process finished")

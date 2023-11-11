@@ -130,8 +130,8 @@ def createOrderDirIfDoesNotExists():
     if not os.path.exists(ORDER_DIR_NAME):
         os.makedirs(ORDER_DIR_NAME)
         
-def createFileWith(filename, filecontent):
-    with open(filename, 'wb') as f:
+def createFileWith(filename, filecontent, mode):
+    with open(filename, mode) as f:
         f.write(filecontent)
     
 def getOrderFiles():

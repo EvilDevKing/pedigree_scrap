@@ -87,7 +87,7 @@ def searchName(horse_name):
     input_elem.click()
     input_elem.send_keys(Keys.CONTROL + "a")
     input_elem.send_keys(Keys.DELETE)
-    input_elem.send_keys("brittany.holy@gmail.com")
+    input_elem.send_keys("sample@gmail.com")
     time.sleep(0.5)
     
     input_elem = WebDriverWait(browser, 10).until(ec.presence_of_element_located((By.XPATH, "//input[@id='txtHorseName']")))

@@ -1,0 +1,6 @@
+/dist
+/build
+/orders
+/reports
+/utils/token.json
+Pipfile.lock

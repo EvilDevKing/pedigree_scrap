@@ -36,7 +36,7 @@ def getGoogleService(service_name, version):
     
 def getGoogleDriver():
     chrome_options = webdriver.ChromeOptions()
-    chrome_options.add_argument("--headless")
+    # chrome_options.add_argument("--headless")
     chrome_options.add_argument("--log-level=3")
     driver = webdriver.Chrome(options=chrome_options)
 

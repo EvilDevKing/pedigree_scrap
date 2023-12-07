@@ -138,7 +138,15 @@ def findSireFromSite(cn):
                 table = soup.find(class_="pedigree-table").find("tbody")
                 return getSireNameFromTable(table)
             else:
-                return ""
+                try:
+                    select = Select(browser.find_element(By.XPATH, "//select[@id='filter-match']"))
+                    select.select_by_value("exact")
+                    WebDriverWait(browser, 10).until(lambda browser: browser.execute_script('return document.readyState') == 'complete')
+                    soup = BeautifulSoup(browser.page_source, 'html.parser')
+                    table = soup.find(class_="pedigree-table").find("tbody")
+                    return getSireNameFromTable(table)
+                except:
+                    return ""
         except:
             return ""
 
@@ -201,3 +209,5 @@ def start(sheetId):
                 updated_cnt += 1
     browser.quit()
     print("Third process finished")
+    
+start("13b-fBnZpZFC_PTTuJ0Y9pYA-UYIgbsUDCCHjga5RBzs")

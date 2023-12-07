@@ -87,7 +87,8 @@ def searchName(horse_name):
     input_elem.click()
     input_elem.send_keys(Keys.CONTROL + "a")
     input_elem.send_keys(Keys.DELETE)
-    input_elem.send_keys("sample@gmail.com")
+    # input_elem.send_keys("brittany.holy@gmail.com")
+    input_elem.send_keys("pascalmartin973@gmail.com")
     time.sleep(0.5)
     
     input_elem = WebDriverWait(browser, 10).until(ec.presence_of_element_located((By.XPATH, "//input[@id='txtHorseName']")))
@@ -144,7 +145,12 @@ def fetchDataFromWebsite(sheetId):
                 soup = BeautifulSoup(browser.page_source, 'html.parser')
                 try:
                     table = soup.find(class_="pedigree-table").find("tbody")
-                    sheet_data.append(getSheetDataFrom(table, rows[cnt]))
+                    tmp_data = getSheetDataFrom(table, rows[cnt])
+                    tmp_data = [v for v in tmp_data if v.strip() == ""]
+                    if len(tmp_data) > 0:
+                        searchName(name)
+                    else:
+                        sheet_data.append(tmp_data)
                 except:
                     try:
                         table = soup.find(class_="layout-table").find("tbody")
@@ -162,15 +168,23 @@ def fetchDataFromWebsite(sheetId):
                             table = soup.find(class_="pedigree-table").find("tbody")
                             sheet_data.append(getSheetDataFrom(table, rows[cnt]))
                         else:
-                            i = header.index('Horse')
-                            while True:
-                                rows[cnt].append("")
-                                i += 1
-                                if i > len(header):
-                                    break
-                            sheet_data.append(rows[cnt])
-                            print("Not found (" + name + ") in https://beta.allbreedpedigree.com/")
-                            searchName(name)
+                            try:
+                                select = Select(browser.find_element(By.XPATH, "//select[@id='filter-match']"))
+                                select.select_by_value("exact")
+                                WebDriverWait(browser, 10).until(lambda browser: browser.execute_script('return document.readyState') == 'complete')
+                                soup = BeautifulSoup(browser.page_source, 'html.parser')
+                                table = soup.find(class_="pedigree-table").find("tbody")
+                                sheet_data.append(getSheetDataFrom(table, rows[cnt]))
+                            except:
+                                i = header.index('Horse')
+                                while True:
+                                    rows[cnt].append("")
+                                    i += 1
+                                    if i > len(header):
+                                        break
+                                sheet_data.append(rows[cnt])
+                                print("Not found (" + name + ") in https://beta.allbreedpedigree.com/")
+                                searchName(name)
                     except:
                         i = header.index('Horse')
                         while True:
@@ -181,6 +195,7 @@ def fetchDataFromWebsite(sheetId):
                         sheet_data.append(rows[cnt])
                         print("Not found (" + name + ") in https://beta.allbreedpedigree.com/")
                         searchName(name)
+                        
                 service.spreadsheets().values().update(
                     spreadsheetId=sheetId,
                     valueInputOption='RAW',

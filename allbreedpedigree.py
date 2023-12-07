@@ -5,6 +5,7 @@ import thread1 as t1
 import thread2 as t2
 import thread3 as t3
 
+
 class Unbuffered(object):
    def __init__(self, stream):
        self.stream = stream
@@ -18,7 +19,6 @@ class Unbuffered(object):
        return getattr(self.stream, attr)
 
 def run(sheetId):
-    
     sys.stdout = Unbuffered(sys.stdout)
     
     proc1 = Process(target=t1.start, args=[sheetId])
@@ -34,3 +34,7 @@ def run(sheetId):
     proc3.join()
     
     print("Script has worked successfully!")
+    
+if __name__ == "__main__":
+    sheetId = sys.argv[1]
+    run(sheetId)

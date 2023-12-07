@@ -9,20 +9,7 @@ from constants import *
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
-class Unbuffered(object):
-   def __init__(self, stream):
-       self.stream = stream
-   def write(self, data):
-       self.stream.write(data)
-       self.stream.flush()
-   def writelines(self, datas):
-       self.stream.writelines(datas)
-       self.stream.flush()
-   def __getattr__(self, attr):
-       return getattr(self.stream, attr)
-
 def run(sheetId, sheet_name):
-    sys.stdout = Unbuffered(sys.stdout)
     service = getGoogleService("sheets", "v4")
     worksheet = service.spreadsheets()
     exec = worksheet.values().get(spreadsheetId=sheetId, range="%s!D2:D" % sheet_name).execute()

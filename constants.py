@@ -36,7 +36,7 @@ def getGoogleService(service_name, version):
     
 def getGoogleDriver():
     chrome_options = webdriver.ChromeOptions()
-    # chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--headless")
     chrome_options.add_argument("--log-level=3")
     driver = webdriver.Chrome(options=chrome_options)
 
@@ -117,8 +117,22 @@ def createOrderDirIfDoesNotExists():
         os.makedirs(ORDER_DIR_NAME)
         
 def createFileWith(filename, filecontent, mode):
-    with open(filename, mode) as f:
-        f.write(filecontent)
+    if filename == "t1.txt":
+        if os.path.exists(filename):
+            with open(filename, "r") as file:
+                content = file.read()
+                file.close()
+            with open(filename, mode) as f:
+                f.write(str(int(filecontent)+int(content)))
+                f.close()
+        else:
+            with open(filename, mode) as f:
+                f.write(filecontent)
+                f.close()
+    else:
+        with open(filename, mode) as f:
+            f.write(filecontent)
+            f.close()
     
 def getOrderFiles():
     return os.listdir(ORDER_DIR_NAME)

@@ -12,8 +12,9 @@ google-auth-oauthlib = "*"
 pymupdf = "*"
 pyinstaller = "*"
 pyqt5 = "*"
-pypdf2 = "*"
 colorama = "*"
+requests = "*"
+pypdf4 = "*"
 
 [dev-packages]
 

@@ -10,6 +10,8 @@ from constants import *
 
 browser = None
 service = None
+horse_names = []
+empty_indexes = dict()
 
 class Unbuffered(object):
    def __init__(self, stream):
@@ -24,7 +26,10 @@ class Unbuffered(object):
        return getattr(self.stream, attr)
 
 def getExtactName(org_name):
-    return re.sub(r'\s+', ' ', org_name)
+    if re.search(r'\s+\d+', org_name):
+        return re.sub(r'\s+\d+', '', org_name)
+    else:
+        return org_name
 
 def extractPdf(file_path):
     NAME_INDEXES = [0, 1, 6, 3, 4, 14, 11, 12, 9, 10, 7, 8, 13, 2]
@@ -103,6 +108,49 @@ def extractPdf(file_path):
                 names[5] = getExtactName(rawList[ind_other-2])
         return names
     
+def searchFromAQHA(horse_name):
+    url = "https://aqhaservices.aqha.com/members/record/freerecords"
+    
+    browser.execute_script(f"window.open('{url}')")
+    browser.switch_to.window(browser.window_handles[1])
+    
+    WebDriverWait(browser, 30).until(lambda browser: browser.execute_script('return document.readyState') == 'complete')
+    time.sleep(2)
+    
+    select_element = Select(WebDriverWait(browser, 30).until(ec.presence_of_element_located((By.XPATH, "//select[@id='ddlRecordName']"))))
+    select_element.select_by_value("10008")
+    
+    WebDriverWait(browser, 10).until(ec.element_to_be_clickable((By.XPATH, "//input[@id='chkHorseName']"))).click()
+    
+    input_elem = WebDriverWait(browser, 10).until(ec.presence_of_element_located((By.XPATH, "//input[@id='txtEmail']")))
+    input_elem.click()
+    input_elem.send_keys(Keys.CONTROL + "a")
+    input_elem.send_keys(Keys.DELETE)
+    # input_elem.send_keys("brittany.holy@gmail.com")
+    input_elem.send_keys("pascalmartin973@gmail.com")
+    time.sleep(0.5)
+    
+    input_elem = WebDriverWait(browser, 10).until(ec.presence_of_element_located((By.XPATH, "//input[@id='txtHorseName']")))
+    input_elem.click()
+    input_elem.send_keys(Keys.CONTROL + "a")
+    input_elem.send_keys(Keys.DELETE)
+    input_elem.send_keys(horse_name)
+    input_elem.send_keys(Keys.TAB)
+    time.sleep(3)
+    
+    if WebDriverWait(browser, 20).until(ec.presence_of_element_located((By.XPATH, "//span[@class='ng-binding']"))).text:
+        button_elem = WebDriverWait(browser, 20).until(ec.presence_of_element_located((By.XPATH, "//div[@class='text-right m-m']/button")))
+        button_elem.click()
+        time.sleep(2)
+        browser.close()
+        browser.switch_to.window(browser.window_handles[0])
+        print("THREAD3: Found Horse (" + horse_name + ") in AQHA Server")
+        createFileWith("t1.txt", "1", "w")
+    else:
+        browser.close()
+        browser.switch_to.window(browser.window_handles[0])
+        print("THREAD3: Not found Horse (" + horse_name + ") on AQHA Server")
+    
 def findSireFromSite(cn):
     global browser
     if browser is None:
@@ -161,6 +209,11 @@ def updateGSData(file_path, sheetId):
     
     for i in range(7, 15):
         sire_name = findSireFromSite(ext_names[i])
+        if sire_name.strip() == "":
+            if ext_names[0] not in empty_indexes:
+                searchFromAQHA(ext_names[i])
+                empty_indexes[ext_names[0]] = {}
+                empty_indexes[ext_names[0]][ext_names[i]] = i
         update_data.append(sire_name)
         
     os.remove(file_path)
@@ -184,6 +237,15 @@ def updateGSData(file_path, sheetId):
                             majorDimension='ROWS',
                             values=[update_data])
                     ).execute()
+                if len(empty_indexes) != 0 and row[indexOfHorseHeader].upper() in empty_indexes:
+                    for name, ind in dict(empty_indexes[row[indexOfHorseHeader].upper()]).items():
+                        if name.lower() == update_data[0].lower():
+                            worksheet.values().update(
+                                spreadsheetId=sheetId,
+                                valueInputOption='RAW',
+                                range=f"{sheet_name}!{getColumnLabelByIndex(ind+indexOfHorseHeader)}{id+1}",
+                                body=dict(values=[[update_data[1]]])
+                            ).execute()
     time.sleep(2)
 def start(sheetId):
     sys.stdout = Unbuffered(sys.stdout)
@@ -209,5 +271,3 @@ def start(sheetId):
                 updated_cnt += 1
     browser.quit()
     print("Third process finished")
-    
-start("13b-fBnZpZFC_PTTuJ0Y9pYA-UYIgbsUDCCHjga5RBzs")

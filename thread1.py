@@ -103,19 +103,13 @@ def searchName(horse_name):
         button_elem = WebDriverWait(browser, 20).until(ec.presence_of_element_located((By.XPATH, "//div[@class='text-right m-m']/button")))
         button_elem.click()
         time.sleep(2)
-        if WebDriverWait(browser, 20).until(ec.presence_of_element_located((By.XPATH, "//li[@class='ng-binding ng-scope']"))):
-            browser.close()
-            browser.switch_to.window(browser.window_handles[0])
-            print("Found Horse (" + horse_name + ") in AQHA Server")
-            success_research_names += 1
-        else:
-            browser.close()
-            browser.switch_to.window(browser.window_handles[0])
-            print("Something went wrong during find a horse name (" + horse_name + ") on AQHA Server")
+        browser.close()
+        browser.switch_to.window(browser.window_handles[0])
+        success_research_names += 1
     else:
         browser.close()
         browser.switch_to.window(browser.window_handles[0])
-        print("Not found Horse (" + horse_name + ") on AQHA Server")
+        print("THREAD1: Not found Horse (" + horse_name + ") on AQHA Server")
 
 def fetchDataFromWebsite(sheetId):
     global browser
@@ -183,7 +177,7 @@ def fetchDataFromWebsite(sheetId):
                                     if i > len(header):
                                         break
                                 sheet_data.append(rows[cnt])
-                                print("Not found (" + name + ") in https://beta.allbreedpedigree.com/")
+                                print("THREAD1: Not found (" + name + ") in https://beta.allbreedpedigree.com/")
                                 searchName(name)
                     except:
                         i = header.index('Horse')
@@ -193,7 +187,7 @@ def fetchDataFromWebsite(sheetId):
                             if i > len(header):
                                 break
                         sheet_data.append(rows[cnt])
-                        print("Not found (" + name + ") in https://beta.allbreedpedigree.com/")
+                        print("THREAD1: Not found (" + name + ") in https://beta.allbreedpedigree.com/")
                         searchName(name)
                         
                 service.spreadsheets().values().update(

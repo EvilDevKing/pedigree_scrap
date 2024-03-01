@@ -10,7 +10,6 @@ from googleapiclient.errors import HttpError
 REPORT_DIR_NAME = "reports"
 ORDER_DIR_NAME = "orders"
 UTILS_DIR_NAME = "utils"
-scores = {}
 def getGoogleService(service_name, version):
     # If modifying these scopes, delete the file token.json.
     SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/gmail.readonly', 'https://mail.google.com/']

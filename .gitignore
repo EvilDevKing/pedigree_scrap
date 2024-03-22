@@ -2,4 +2,4 @@
 /build
 /orders
 /reports
-/utils/token.json
+.env

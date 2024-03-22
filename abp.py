@@ -1,10 +1,9 @@
-import sys, os
+import sys
 from multiprocessing import Process
 
 import thread1 as t1
 import thread2 as t2
 import thread3 as t3
-
 
 class Unbuffered(object):
    def __init__(self, stream):
@@ -33,8 +32,11 @@ def run(sheetId):
     proc2.join()
     proc3.join()
     
-    print("Script has worked successfully!")
+    print("Done!")
     
 if __name__ == "__main__":
-    sheetId = sys.argv[1]
-    run(sheetId)
+    sheetId = input("Enter your worksheet id: ")
+    if sheetId.strip() == "":
+        print("The sheetid can't be empty.")
+    else:
+        run(sheetId)

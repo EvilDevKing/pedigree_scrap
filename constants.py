@@ -1,5 +1,6 @@
-import os, pickle
+import os
 from selenium import webdriver
+from selenium.webdriver.common.by import By
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -9,6 +10,7 @@ from googleapiclient.errors import HttpError
 
 REPORT_DIR_NAME = "reports"
 ORDER_DIR_NAME = "orders"
+ORDER_BACKUP_DIR_NAME = "orders_backup"
 UTILS_DIR_NAME = "utils"
 def getGoogleService(service_name, version):
     # If modifying these scopes, delete the file token.json.
@@ -25,6 +27,7 @@ def getGoogleService(service_name, version):
             credential = flow.run_local_server(port=0)
         with open(UTILS_DIR_NAME + '/token.json', 'w') as token:
             token.write(credential.to_json())
+            token.close()
             
     try:
         service = build(service_name, version, credentials=credential)
@@ -51,7 +54,7 @@ def getGoogleDriver():
 
 def getTextValue(list, index):
     try:
-        return list[index].find("div", {"class":"block-name"}).get("title").title()
+        return list[index].find_element(By.CSS_SELECTOR, "div.block-name").get_attribute("title").title()
     except:
         return ""
     
@@ -78,18 +81,19 @@ def getColumnLabelByIndex(ind):
     return labels[ind]
 
 def getSireNameFromTable(table):
-    tds = table.select("td[id]")
-    sire_elem = [element for element in tds if element.get("id").endswith("M")]
+    tds = table.find_elements(By.CSS_SELECTOR, "td[id]")
+    sire_elem = [element for element in tds if element.get_attribute("id").endswith("M")]
     sire_name = getTextValue(sire_elem, 0)
     return sire_name
 
-def getSheetDataFrom(table, row):
+def getSheetDataFrom(table):
+    row = []
     ## Extract the values will be input in spreadsheet ##
-    tds = table.select("td[id]")
-    level0_elem = [element for element in tds if len(element.get("id")) == 1 and element.get("id").endswith("M")] ## list of Group A - Expected count : 1
-    level1_elem = [element for element in tds if len(element.get("id")) == 2 and element.get("id").endswith("M")] ## list of Group B - Expected count : 2
-    level2_elem = [element for element in tds if len(element.get("id")) == 3 and element.get("id").endswith("M")] ## list of Group C - Expected count : 4
-    level3_elem = [element for element in tds if len(element.get("id")) == 4 and element.get("id").endswith("M")] ## list of Group D - Expected count : 8
+    tds = table.find_elements(By.CSS_SELECTOR, "td[id]")
+    level0_elem = [element for element in tds if len(element.get_attribute("id")) == 1 and element.get_attribute("id").endswith("M")] ## list of Group A - Expected count : 1
+    level1_elem = [element for element in tds if len(element.get_attribute("id")) == 2 and element.get_attribute("id").endswith("M")] ## list of Group B - Expected count : 2
+    level2_elem = [element for element in tds if len(element.get_attribute("id")) == 3 and element.get_attribute("id").endswith("M")] ## list of Group C - Expected count : 4
+    level3_elem = [element for element in tds if len(element.get_attribute("id")) == 4 and element.get_attribute("id").endswith("M")] ## list of Group D - Expected count : 8
 
     row.append(getTextValue(level0_elem, 0))
 
@@ -114,6 +118,10 @@ def getSheetDataFrom(table, row):
 def createOrderDirIfDoesNotExists():
     if not os.path.exists(ORDER_DIR_NAME):
         os.makedirs(ORDER_DIR_NAME)
+
+def createOrderBackupDirIfDoesNotExists():
+    if not os.path.exists(ORDER_BACKUP_DIR_NAME):
+        os.makedirs(ORDER_BACKUP_DIR_NAME)
         
 def createFileWith(filename, filecontent, mode):
     if filename == "t1.txt":

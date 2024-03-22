@@ -3,15 +3,13 @@ from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from bs4 import BeautifulSoup
 import os, re, time, sys
 
 from constants import *
 
-browser = None
-service = None
+driver = None
+worksheet = None
 horse_names = []
-empty_indexes = dict()
 
 class Unbuffered(object):
    def __init__(self, stream):
@@ -27,9 +25,9 @@ class Unbuffered(object):
 
 def getExtactName(org_name):
     if re.search(r'\s+\d+', org_name):
-        return re.sub(r'\s+\d+', '', org_name)
+        return re.sub(r'\s+\d+', '', org_name).title()
     else:
-        return org_name
+        return org_name.title()
 
 def extractPdf(file_path):
     NAME_INDEXES = [0, 1, 6, 3, 4, 14, 11, 12, 9, 10, 7, 8, 13, 2]
@@ -111,18 +109,18 @@ def extractPdf(file_path):
 def searchFromAQHA(horse_name):
     url = "https://aqhaservices.aqha.com/members/record/freerecords"
     
-    browser.execute_script(f"window.open('{url}')")
-    browser.switch_to.window(browser.window_handles[1])
+    driver.execute_script(f"window.open('{url}')")
+    driver.switch_to.window(driver.window_handles[1])
     
-    WebDriverWait(browser, 30).until(lambda browser: browser.execute_script('return document.readyState') == 'complete')
+    WebDriverWait(driver, 100).until(lambda driver: driver.execute_script('return document.readyState') == 'complete')
     time.sleep(2)
     
-    select_element = Select(WebDriverWait(browser, 30).until(ec.presence_of_element_located((By.XPATH, "//select[@id='ddlRecordName']"))))
+    select_element = Select(WebDriverWait(driver, 30).until(ec.presence_of_element_located((By.CSS_SELECTOR, "select#ddlRecordName"))))
     select_element.select_by_value("10008")
     
-    WebDriverWait(browser, 10).until(ec.element_to_be_clickable((By.XPATH, "//input[@id='chkHorseName']"))).click()
+    WebDriverWait(driver, 10).until(ec.element_to_be_clickable((By.CSS_SELECTOR, "input#chkHorseName"))).click()
     
-    input_elem = WebDriverWait(browser, 10).until(ec.presence_of_element_located((By.XPATH, "//input[@id='txtEmail']")))
+    input_elem = WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.CSS_SELECTOR, "input#txtEmail")))
     input_elem.click()
     input_elem.send_keys(Keys.CONTROL + "a")
     input_elem.send_keys(Keys.DELETE)
@@ -130,129 +128,113 @@ def searchFromAQHA(horse_name):
     input_elem.send_keys("pascalmartin973@gmail.com")
     time.sleep(0.5)
     
-    input_elem = WebDriverWait(browser, 10).until(ec.presence_of_element_located((By.XPATH, "//input[@id='txtHorseName']")))
+    input_elem = WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.CSS_SELECTOR, "input#txtHorseName")))
     input_elem.click()
     input_elem.send_keys(Keys.CONTROL + "a")
     input_elem.send_keys(Keys.DELETE)
     input_elem.send_keys(horse_name)
     input_elem.send_keys(Keys.TAB)
-    time.sleep(3)
+    time.sleep(2)
     
-    if WebDriverWait(browser, 20).until(ec.presence_of_element_located((By.XPATH, "//span[@class='ng-binding']"))).text:
-        button_elem = WebDriverWait(browser, 20).until(ec.presence_of_element_located((By.XPATH, "//div[@class='text-right m-m']/button")))
+    if driver.find_element(By.CSS_SELECTOR, "span.ng-binding").text != "":
+        button_elem = WebDriverWait(driver, 20).until(ec.presence_of_element_located((By.CSS_SELECTOR, "div.text-right.m-m button")))
         button_elem.click()
         time.sleep(2)
-        browser.close()
-        browser.switch_to.window(browser.window_handles[0])
-        print("THREAD3: Found Horse (" + horse_name + ") in AQHA Server")
-        createFileWith("t1.txt", "1", "w")
+        driver.close()
+        driver.switch_to.window(driver.window_handles[0])
+        print("THREAD3: Found Horse (" + horse_name + ") on AQHA Server")
     else:
-        browser.close()
-        browser.switch_to.window(browser.window_handles[0])
+        driver.close()
+        driver.switch_to.window(driver.window_handles[0])
         print("THREAD3: Not found Horse (" + horse_name + ") on AQHA Server")
-    
+
 def findSireFromSite(cn):
-    global browser
-    if browser is None:
+    global driver
+    if driver is None:
         url = "https://beta.allbreedpedigree.com/search?query_type=check&search_bar=horse&g=5&inbred=Standard"
-        browser = getGoogleDriver()
-        browser.get(url)
-        WebDriverWait(browser, 10).until(lambda browser: browser.execute_script('return document.readyState') == 'complete')
-        WebDriverWait(browser, 10).until(ec.element_to_be_clickable((By.XPATH, "//button[@class='btn-close']"))).click()
-    WebDriverWait(browser, 10).until(ec.element_to_be_clickable((By.XPATH, "//div[@id='header-search-input-helper']"))).click()
-    input_elem = WebDriverWait(browser, 10).until(ec.element_to_be_clickable((By.XPATH, "//input[@id='header-search-input']")))
+        driver = getGoogleDriver()
+        driver.get(url)
+        WebDriverWait(driver, 10).until(lambda driver: driver.execute_script('return document.readyState') == 'complete')
+        WebDriverWait(driver, 10).until(ec.element_to_be_clickable((By.CSS_SELECTOR, "button.btn-close"))).click()
+    WebDriverWait(driver, 10).until(ec.element_to_be_clickable((By.CSS_SELECTOR, "div#header-search-input-helper"))).click()
+    input_elem = WebDriverWait(driver, 10).until(ec.element_to_be_clickable((By.CSS_SELECTOR, "input#header-search-input")))
     input_elem.send_keys(Keys.CONTROL + "a")
     input_elem.send_keys(Keys.DELETE)
     input_elem.send_keys(cn, Keys.ENTER)
     
-    soup = BeautifulSoup(browser.page_source, 'html.parser')
     try:
-        table = soup.find(class_="pedigree-table").find("tbody")
+        table = driver.find_element(By.CSS_SELECTOR, "table.pedigree-table tbody")
         return getSireNameFromTable(table)
     except:
         try:
-            table = soup.find(class_="layout-table").find("tbody")
-            tds = table.select("td:nth-child(1)")
+            tds = driver.find_elements(By.CSS_SELECTOR, "table.layout-table tbody td[class]:nth-child(1)")
             txt_vals = []
             links = []
             for td in tds:
-                txt_vals.append(td.text.upper())
-                links.append(td.find("a").get("href"))
-            indexes = [i for i, x in enumerate(txt_vals) if x.lower() == cn.lower()]
+                txt_vals.append(td.text)
+                links.append(td.find_element(By.TAG_NAME, "a").get_attribute("href"))
+            indexes = [x for x in txt_vals if x.lower() == cn.lower()]
             if len(indexes) == 1:
-                browser.get(links[0])
-                WebDriverWait(browser, 10).until(lambda browser: browser.execute_script('return document.readyState') == 'complete')
-                soup = BeautifulSoup(browser.page_source, 'html.parser')
-                table = soup.find(class_="pedigree-table").find("tbody")
+                driver.get(links[0])
+                WebDriverWait(driver, 10).until(lambda driver: driver.execute_script('return document.readyState') == 'complete')
+                table = driver.find_element(By.CSS_SELECTOR, "table.pedigree-table tbody")
                 return getSireNameFromTable(table)
             else:
                 try:
-                    select = Select(browser.find_element(By.XPATH, "//select[@id='filter-match']"))
+                    select = Select(driver.find_element(By.CSS_SELECTOR, "select#filter-match"))
                     select.select_by_value("exact")
-                    WebDriverWait(browser, 10).until(lambda browser: browser.execute_script('return document.readyState') == 'complete')
-                    soup = BeautifulSoup(browser.page_source, 'html.parser')
-                    table = soup.find(class_="pedigree-table").find("tbody")
+                    WebDriverWait(driver, 10).until(lambda driver: driver.execute_script('return document.readyState') == 'complete')
+                    table = driver.find_element(By.CSS_SELECTOR, "table.pedigree-table tbody")
                     return getSireNameFromTable(table)
                 except:
                     return ""
         except:
             return ""
 
-def updateGSData(file_path, sheetId):
+def updateGSData(file_name, sheetId, indexOfHorse, sheetData):
+    file_path = ORDER_DIR_NAME + "/" + file_name
     update_data = []
     ext_names = extractPdf(file_path)
     if ext_names is None: return
-    update_data.append(ext_names[0].title())
     pre_index_list = [1, 5, 3, 5, 7, 11, 9, 13]
     for i in pre_index_list:
-        update_data.append(ext_names[i].title())
+        update_data.append(ext_names[i])
+    
+    os.replace(file_path, ORDER_BACKUP_DIR_NAME + "/" + file_name)
     
     for i in range(7, 15):
         sire_name = findSireFromSite(ext_names[i])
         if sire_name.strip() == "":
-            if ext_names[0] not in empty_indexes:
-                searchFromAQHA(ext_names[i])
-                empty_indexes[ext_names[0]] = {}
-                empty_indexes[ext_names[0]][ext_names[i]] = i
-        update_data.append(sire_name)
-        
-    os.remove(file_path)
+            searchFromAQHA(ext_names[i])
+            update_data.append(f"({ext_names[i].lower()})")
+        else:
+            update_data.append(sire_name)
     
-    worksheet = service.spreadsheets()
-    sheet_metadata = worksheet.get(spreadsheetId=sheetId).execute()
-    for sheet in sheet_metadata['sheets']:
-        sheet_name = sheet['properties']['title']
-        result = worksheet.values().get(spreadsheetId=sheetId, range="%s!A1:Z" % sheet_name).execute()
-        values = result.get('values')
-        header = values[0]
-        indexOfHorseHeader = header.index('Horse')
-        for id, row in enumerate(values):
-            if len(row) != 0:
-                if update_data[0].lower() == row[indexOfHorseHeader].lower():
-                    worksheet.values().update(
-                        spreadsheetId=sheetId,
-                        valueInputOption='RAW',
-                        range="%s!A%s:Z%s" % (sheet_name, str(id+1), str(id+1)),
-                        body=dict(
-                            majorDimension='ROWS',
-                            values=[update_data])
-                    ).execute()
-                if len(empty_indexes) != 0 and row[indexOfHorseHeader].upper() in empty_indexes:
-                    for name, ind in dict(empty_indexes[row[indexOfHorseHeader].upper()]).items():
-                        if name.lower() == update_data[0].lower():
-                            worksheet.values().update(
-                                spreadsheetId=sheetId,
-                                valueInputOption='RAW',
-                                range=f"{sheet_name}!{getColumnLabelByIndex(ind+indexOfHorseHeader)}{id+1}",
-                                body=dict(values=[[update_data[1]]])
-                            ).execute()
+    for id, row in enumerate(sheetData):
+        if len(row) != 0:
+            if update_data[0].lower() == row[indexOfHorse].lower():
+                worksheet.values().update(
+                    spreadsheetId=sheetId,
+                    valueInputOption='RAW',
+                    range=f"horses!{getColumnLabelByIndex(indexOfHorse+1)}{str(id+2)}:Q{str(id+2)}",
+                    body=dict(
+                        majorDimension='ROWS',
+                        values=[update_data])
+                ).execute()
+    
     time.sleep(2)
+
 def start(sheetId):
     sys.stdout = Unbuffered(sys.stdout)
     print("Third process started")
     createOrderDirIfDoesNotExists()
-    global service
+    createOrderBackupDirIfDoesNotExists()
+    global worksheet
     service = getGoogleService("sheets", "v4")
+    worksheet = service.spreadsheets()
+    values = worksheet.values().get(spreadsheetId=sheetId, range="horses!A1:Q").execute().get('values')
+    header = values.pop(0)
+    indexOfHorseHeader = header.index('Horse')
     updated_cnt = 0
     while True:
         if os.path.exists("t2.txt"):
@@ -267,7 +249,7 @@ def start(sheetId):
         files = getOrderFiles()
         if len(files):
             for file in files:
-                updateGSData(ORDER_DIR_NAME + "/" + file, sheetId)
+                updateGSData(file, sheetId, indexOfHorseHeader, values)
                 updated_cnt += 1
-    browser.quit()
+    driver.quit()
     print("Third process finished")

@@ -98,7 +98,7 @@ def extractPdf(file_path):
                 names[5] = getExtactName(rawList[ind_other-2])
         return names
     
-def updateGSData(file_path, ws, sheetId, indexOfHorseHeader, sheetData):
+def updateGSData(file_path, ws, sheetId, sheetName, indexOfHorseHeader, sheetData):
     ext_names = extractPdf(file_path)
     if ext_names is None: return
     os.remove(file_path)
@@ -110,24 +110,23 @@ def updateGSData(file_path, ws, sheetId, indexOfHorseHeader, sheetData):
                     ws.values().update(
                         spreadsheetId=sheetId,
                         valueInputOption='RAW',
-                        range=f"horses!{cell_range_str}:{cell_range_str}",
+                        range=f"{sheetName}!{cell_range_str}:{cell_range_str}",
                         body=dict(
                             majorDimension='ROWS',
                             values=[[ext_names[1]]]
                         )
                     ).execute()
     time.sleep(2)
-def start(sheetId):
+def start(sheetId, sheetName):
     sys.stdout = Unbuffered(sys.stdout)
     print("Forth process started")
-    createOrderDirIfDoesNotExists()
     service = getGoogleService("sheets", "v4")
     worksheet = service.spreadsheets()
-    values = worksheet.values().get(spreadsheetId=sheetId, range="horses!A1:Q").execute().get('values')
+    values = worksheet.values().get(spreadsheetId=sheetId, range=f"{sheetName}!A1:Z").execute().get('values')
     header = values.pop(0)
     indexOfHorse = header.index('Horse')
-    files = getOrderFiles()
+    files = getOrderBackupFiles()
     if len(files):
         for file in files:
-            updateGSData(ORDER_BACKUP_DIR_NAME + "/" + file, worksheet, sheetId, indexOfHorse, values)
+            updateGSData(ORDER_BACKUP_DIR_NAME + "/" + file, worksheet, sheetId, sheetName, indexOfHorse, values)
     print("Third process finished")

@@ -1,5 +1,5 @@
-/dist
-/build
-/orders
-/reports
+/res/dist
+/res/build
+/res/orders
+/res/reports
 .env

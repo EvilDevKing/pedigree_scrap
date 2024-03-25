@@ -18,15 +18,20 @@ def checkMailAndDownloadOrderFile():
     service = getGoogleService('gmail', 'v1')
     pdf_cnt = 0
     while True:
-        if os.path.exists("t1.txt"):
+        if os.path.exists("res/t1.txt") and os.path.exists("res/t3.txt"):
             t1_result = None
-            with open("t1.txt", "r") as file:
+            t3_result = None
+            with open("res/t1.txt", "r") as file:
                 t1_result = file.read()
                 file.close()
+            with open("res/t3.txt", "r") as file:
+                t3_result = file.read()
+                file.close()
 
-            if pdf_cnt == int(t1_result):
-                os.remove("t1.txt")
-                createFileWith("t2.txt", str(pdf_cnt), "w")
+            if pdf_cnt > int(t1_result) + int(t3_result):
+                os.remove("res/t1.txt")
+                os.remove("res/t3.txt")
+                createFileWith("res/t2.txt", str(pdf_cnt), "w")
                 break
 
         # Fetch messages from inbox

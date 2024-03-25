@@ -10,6 +10,7 @@ from constants import *
 driver = None
 worksheet = None
 horse_names = []
+search_cnt = 0
 
 class Unbuffered(object):
    def __init__(self, stream):
@@ -143,6 +144,7 @@ def searchFromAQHA(horse_name):
         driver.close()
         driver.switch_to.window(driver.window_handles[0])
         print("THREAD3: Found Horse (" + horse_name + ") on AQHA Server")
+        createFileWith("res/t3.txt", str(search_cnt+1), "w")
     else:
         driver.close()
         driver.switch_to.window(driver.window_handles[0])
@@ -191,7 +193,7 @@ def findSireFromSite(cn):
         except:
             return ""
 
-def updateGSData(file_name, sheetId, indexOfHorse, sheetData):
+def updateGSData(file_name, sheetId, sheetName, indexOfHorse, sheetData):
     file_path = ORDER_DIR_NAME + "/" + file_name
     update_data = []
     ext_names = extractPdf(file_path)
@@ -212,11 +214,11 @@ def updateGSData(file_name, sheetId, indexOfHorse, sheetData):
     
     for id, row in enumerate(sheetData):
         if len(row) != 0:
-            if update_data[0].lower() == row[indexOfHorse].lower():
+            if ext_names[0].lower() == row[indexOfHorse].lower():
                 worksheet.values().update(
                     spreadsheetId=sheetId,
                     valueInputOption='RAW',
-                    range=f"horses!{getColumnLabelByIndex(indexOfHorse+1)}{str(id+2)}:Q{str(id+2)}",
+                    range=f"{sheetName}!{getColumnLabelByIndex(indexOfHorse+1)}{str(id+2)}:Z{str(id+2)}",
                     body=dict(
                         majorDimension='ROWS',
                         values=[update_data])
@@ -224,7 +226,7 @@ def updateGSData(file_name, sheetId, indexOfHorse, sheetData):
     
     time.sleep(2)
 
-def start(sheetId):
+def start(sheetId, sheetName):
     sys.stdout = Unbuffered(sys.stdout)
     print("Third process started")
     createOrderDirIfDoesNotExists()
@@ -232,24 +234,24 @@ def start(sheetId):
     global worksheet
     service = getGoogleService("sheets", "v4")
     worksheet = service.spreadsheets()
-    values = worksheet.values().get(spreadsheetId=sheetId, range="horses!A1:Q").execute().get('values')
+    values = worksheet.values().get(spreadsheetId=sheetId, range=f"{sheetName}!A1:Z").execute().get('values')
     header = values.pop(0)
     indexOfHorseHeader = header.index('Horse')
     updated_cnt = 0
     while True:
-        if os.path.exists("t2.txt"):
+        if os.path.exists("res/t2.txt"):
             t2_result = None
-            with open("t2.txt", "r") as file:
+            with open("res/t2.txt", "r") as file:
                 t2_result = file.read()
                 file.close()
             
             if updated_cnt == int(t2_result):
-                os.remove("t2.txt")
+                os.remove("res/t2.txt")
                 break
         files = getOrderFiles()
         if len(files):
             for file in files:
-                updateGSData(file, sheetId, indexOfHorseHeader, values)
+                updateGSData(file, sheetId, sheetName, indexOfHorseHeader, values)
                 updated_cnt += 1
     driver.quit()
     print("Third process finished")

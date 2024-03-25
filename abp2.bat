@@ -1,5 +1,5 @@
 @echo off
 call .env\Scripts\activate.bat
-python thread4.py
+python res\thread4.py
 
 pause

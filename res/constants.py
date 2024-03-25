@@ -1,5 +1,7 @@
 import os
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 
 from google.auth.transport.requests import Request
@@ -8,10 +10,10 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-REPORT_DIR_NAME = "reports"
-ORDER_DIR_NAME = "orders"
-ORDER_BACKUP_DIR_NAME = "orders_backup"
-UTILS_DIR_NAME = "utils"
+REPORT_DIR_NAME = "res/reports"
+ORDER_DIR_NAME = "res/orders"
+ORDER_BACKUP_DIR_NAME = "res/orders_backup"
+UTILS_DIR_NAME = "res/utils"
 def getGoogleService(service_name, version):
     # If modifying these scopes, delete the file token.json.
     SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/gmail.readonly', 'https://mail.google.com/']
@@ -40,7 +42,7 @@ def getGoogleDriver():
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--log-level=3")
-    driver = webdriver.Chrome(options=chrome_options)
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
 
     driver.execute_script(
         "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
@@ -124,22 +126,12 @@ def createOrderBackupDirIfDoesNotExists():
         os.makedirs(ORDER_BACKUP_DIR_NAME)
         
 def createFileWith(filename, filecontent, mode):
-    if filename == "t1.txt":
-        if os.path.exists(filename):
-            with open(filename, "r") as file:
-                content = file.read()
-                file.close()
-            with open(filename, mode) as f:
-                f.write(str(int(filecontent)+int(content)))
-                f.close()
-        else:
-            with open(filename, mode) as f:
-                f.write(filecontent)
-                f.close()
-    else:
-        with open(filename, mode) as f:
-            f.write(filecontent)
-            f.close()
+    with open(filename, mode) as f:
+        f.write(filecontent)
+        f.close()
     
 def getOrderFiles():
     return os.listdir(ORDER_DIR_NAME)
+
+def getOrderBackupFiles():
+    return os.listdir(ORDER_BACKUP_DIR_NAME)

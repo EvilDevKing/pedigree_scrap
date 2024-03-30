@@ -12,7 +12,6 @@ from googleapiclient.errors import HttpError
 
 REPORT_DIR_NAME = "res/reports"
 ORDER_DIR_NAME = "res/orders"
-ORDER_BACKUP_DIR_NAME = "res/orders_backup"
 UTILS_DIR_NAME = "res/utils"
 def getGoogleService(service_name, version):
     # If modifying these scopes, delete the file token.json.
@@ -120,10 +119,6 @@ def getSheetDataFrom(table):
 def createOrderDirIfDoesNotExists():
     if not os.path.exists(ORDER_DIR_NAME):
         os.makedirs(ORDER_DIR_NAME)
-
-def createOrderBackupDirIfDoesNotExists():
-    if not os.path.exists(ORDER_BACKUP_DIR_NAME):
-        os.makedirs(ORDER_BACKUP_DIR_NAME)
         
 def createFileWith(filename, filecontent, mode):
     with open(filename, mode) as f:
@@ -132,6 +127,3 @@ def createFileWith(filename, filecontent, mode):
     
 def getOrderFiles():
     return os.listdir(ORDER_DIR_NAME)
-
-def getOrderBackupFiles():
-    return os.listdir(ORDER_BACKUP_DIR_NAME)

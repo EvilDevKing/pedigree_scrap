@@ -6,7 +6,7 @@ def run(sheetId):
     result = service.spreadsheets().values().get(spreadsheetId=sheetId, range="Overall Master crosses!A2:R").execute().get("values")
     print("Running...")
     for i, v in enumerate(result):
-        if len(v) == 0 or len(v) == 2: continue
+        if len(v) == 0 or len(v) < 4: continue
         if (len(v) > 14 and "" in v[10:14]) or len(v) < 10:
             update_data = []
             for x in result:

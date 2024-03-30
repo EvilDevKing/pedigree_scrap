@@ -18,22 +18,16 @@ def checkMailAndDownloadOrderFile():
     service = getGoogleService('gmail', 'v1')
     pdf_cnt = 0
     while True:
-        if os.path.exists("res/t1.txt") and os.path.exists("res/t3.txt"):
-            t1_result = None
-            t3_result = None
-            with open("res/t1.txt", "r") as file:
-                t1_result = file.read()
-                file.close()
-            with open("res/t3.txt", "r") as file:
-                t3_result = file.read()
-                file.close()
-
-            if pdf_cnt > int(t1_result) + int(t3_result):
-                os.remove("res/t1.txt")
-                os.remove("res/t3.txt")
-                createFileWith("res/t2.txt", str(pdf_cnt), "w")
-                break
-
+        if os.path.exists("res/t3.txt"):
+            os.remove("res/t3.txt")
+            for file in getOrderFiles():
+                os.remove(ORDER_DIR_NAME + "/" + file)
+            break
+        if os.path.exists("res/t4.txt"):
+            os.remove("res/t4.txt")
+            for file in getOrderFiles():
+                os.remove(ORDER_DIR_NAME + "/" + file)
+            break
         # Fetch messages from inbox
         results = service.users().messages().list(userId='me', labelIds=['INBOX'], maxResults=10, q="from:noreply@aqha.org").execute()
         messages = results.get('messages')
@@ -61,9 +55,8 @@ def checkMailAndDownloadOrderFile():
                             pdf_cnt += 1
                             print("Stored a pdf order file : " + filename)
                     service.users().messages().delete(userId='me', id=msg_id).execute()
-                    print("Removed message : " + msg_id)
                 except: continue
-        time.sleep(3)
+        time.sleep(5)
 
 def start():
     sys.stdout = Unbuffered(sys.stdout)

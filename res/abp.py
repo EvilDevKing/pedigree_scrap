@@ -1,4 +1,4 @@
-import sys
+import sys, os
 from multiprocessing import Process
 
 import thread1 as t1
@@ -33,8 +33,20 @@ def run(sheetId, sheetName):
     proc2.join()
     proc3.join()
 
+    print("""
+        ######################################
+        ######################################      
+        ######################################
+        ######################################
+    """)
+
+    proc2 = Process(target=t2.start)
     proc4 = Process(target=t4.start, args=[sheetId, sheetName])
+
+    proc2.start()
     proc4.start()
+
+    proc2.join()
     proc4.join()
     
     print("Done!")

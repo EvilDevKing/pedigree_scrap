@@ -10,7 +10,6 @@ from constants import *
 driver = None
 worksheet = None
 horse_names = []
-search_cnt = 0
 
 class Unbuffered(object):
    def __init__(self, stream):
@@ -106,49 +105,6 @@ def extractPdf(file_path):
             else:
                 names[5] = getExtactName(rawList[ind_other-2])
         return names
-    
-def searchFromAQHA(horse_name):
-    url = "https://aqhaservices.aqha.com/members/record/freerecords"
-    
-    driver.execute_script(f"window.open('{url}')")
-    driver.switch_to.window(driver.window_handles[1])
-    
-    WebDriverWait(driver, 100).until(lambda driver: driver.execute_script('return document.readyState') == 'complete')
-    time.sleep(2)
-    
-    select_element = Select(WebDriverWait(driver, 30).until(ec.presence_of_element_located((By.CSS_SELECTOR, "select#ddlRecordName"))))
-    select_element.select_by_value("10008")
-    
-    WebDriverWait(driver, 10).until(ec.element_to_be_clickable((By.CSS_SELECTOR, "input#chkHorseName"))).click()
-    
-    input_elem = WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.CSS_SELECTOR, "input#txtEmail")))
-    input_elem.click()
-    input_elem.send_keys(Keys.CONTROL + "a")
-    input_elem.send_keys(Keys.DELETE)
-    # input_elem.send_keys("brittany.holy@gmail.com")
-    input_elem.send_keys("pascalmartin973@gmail.com")
-    time.sleep(0.5)
-    
-    input_elem = WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.CSS_SELECTOR, "input#txtHorseName")))
-    input_elem.click()
-    input_elem.send_keys(Keys.CONTROL + "a")
-    input_elem.send_keys(Keys.DELETE)
-    input_elem.send_keys(horse_name)
-    input_elem.send_keys(Keys.TAB)
-    time.sleep(2)
-    
-    if driver.find_element(By.CSS_SELECTOR, "span.ng-binding").text != "":
-        button_elem = WebDriverWait(driver, 20).until(ec.presence_of_element_located((By.CSS_SELECTOR, "div.text-right.m-m button")))
-        button_elem.click()
-        time.sleep(2)
-        driver.close()
-        driver.switch_to.window(driver.window_handles[0])
-        print("THREAD3: Found Horse (" + horse_name + ") on AQHA Server")
-        createFileWith("res/t3.txt", str(search_cnt+1), "w")
-    else:
-        driver.close()
-        driver.switch_to.window(driver.window_handles[0])
-        print("THREAD3: Not found Horse (" + horse_name + ") on AQHA Server")
 
 def findSireFromSite(cn):
     global driver
@@ -198,16 +154,14 @@ def updateGSData(file_name, sheetId, sheetName, indexOfHorse, sheetData):
     update_data = []
     ext_names = extractPdf(file_path)
     if ext_names is None: return
+
     pre_index_list = [1, 5, 3, 5, 7, 11, 9, 13]
     for i in pre_index_list:
         update_data.append(ext_names[i])
     
-    os.replace(file_path, ORDER_BACKUP_DIR_NAME + "/" + file_name)
-    
     for i in range(7, 15):
         sire_name = findSireFromSite(ext_names[i])
         if sire_name.strip() == "":
-            searchFromAQHA(ext_names[i])
             update_data.append(f"({ext_names[i].lower()})")
         else:
             update_data.append(sire_name)
@@ -223,35 +177,34 @@ def updateGSData(file_name, sheetId, sheetName, indexOfHorse, sheetData):
                         majorDimension='ROWS',
                         values=[update_data])
                 ).execute()
-    
-    time.sleep(2)
+    os.remove(file_path)
 
 def start(sheetId, sheetName):
     sys.stdout = Unbuffered(sys.stdout)
     print("Third process started")
     createOrderDirIfDoesNotExists()
-    createOrderBackupDirIfDoesNotExists()
     global worksheet
     service = getGoogleService("sheets", "v4")
     worksheet = service.spreadsheets()
     values = worksheet.values().get(spreadsheetId=sheetId, range=f"{sheetName}!A1:Z").execute().get('values')
     header = values.pop(0)
     indexOfHorseHeader = header.index('Horse')
-    updated_cnt = 0
+    update_cnt = 0
     while True:
-        if os.path.exists("res/t2.txt"):
-            t2_result = None
-            with open("res/t2.txt", "r") as file:
-                t2_result = file.read()
+        if os.path.exists("res/t1.txt"):
+            with open("res/t1.txt", "r") as file:
+                t1_result = file.read()
                 file.close()
-            
-            if updated_cnt == int(t2_result):
-                os.remove("res/t2.txt")
+            if update_cnt >= int(t1_result):
+                os.remove("res/t1.txt")
+                createFileWith("res/t3.txt", "finish", "w")
                 break
+            
         files = getOrderFiles()
-        if len(files):
+        if len(files) > 0:
             for file in files:
                 updateGSData(file, sheetId, sheetName, indexOfHorseHeader, values)
-                updated_cnt += 1
+                update_cnt += 1
+        
     driver.quit()
     print("Third process finished")

@@ -9,6 +9,7 @@ from constants import *
 
 driver = None
 search_cnt = 0
+update_cnt = 0
 
 class Unbuffered(object):
    def __init__(self, stream):
@@ -155,6 +156,7 @@ def searchFromAQHA(horse_name, ws, sheetId, sheetName, rind, cind):
         ).execute()
 
 def updateGSData(file_path, ws, sheetId, sheetName, indexOfHorseHeader, sheetData):
+    global update_cnt
     ext_names = extractPdf(file_path)
     if ext_names is None: return
     os.remove(file_path)
@@ -173,6 +175,7 @@ def updateGSData(file_path, ws, sheetId, sheetName, indexOfHorseHeader, sheetDat
                         )
                     ).execute()
                     print(f"Updated: r-{id+2}, c-{ind}, <{ext_names[1]}>")
+    update_cnt += 1
     time.sleep(2)
 def start(sheetId, sheetName):
     sys.stdout = Unbuffered(sys.stdout)
@@ -188,16 +191,14 @@ def start(sheetId, sheetName):
             for cind, c_val in enumerate(row):
                 if re.match(r'\(.*?\)', c_val):
                     searchFromAQHA(c_val.lstrip("(").rstrip(")"), worksheet, sheetId, sheetName, rind+2, cind+indexOfHorseHeader)
-    file_cnt = 0
     while True:
-        if file_cnt == search_cnt:
+        if update_cnt == search_cnt:
             createFileWith("res/t4.txt", "finish", "w")
             break
         files = getOrderFiles()
         if len(files) > 0:
             for file in files:
                 updateGSData(ORDER_DIR_NAME + "/" + file, worksheet, sheetId, sheetName, indexOfHorseHeader, values)
-                file_cnt += 1
         
     driver.quit()
     print("Forth process finished")

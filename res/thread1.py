@@ -28,7 +28,9 @@ def searchNameFromABP(service, sheetId, sheetName, indexOfHorseHeader, horse_nam
     browser.switch_to.window(browser.window_handles[1])
     
     WebDriverWait(browser, 100).until(lambda browser: browser.execute_script('return document.readyState') == 'complete')
-    WebDriverWait(browser, 10).until(ec.element_to_be_clickable((By.CSS_SELECTOR, "button.btn-close"))).click()
+    try:
+        WebDriverWait(browser, 10).until(ec.element_to_be_clickable((By.CSS_SELECTOR, "button.btn-close"))).click()
+    except: print("")
     time.sleep(2)
 
     WebDriverWait(browser, 10).until(ec.element_to_be_clickable((By.CSS_SELECTOR, "div#header-search-input-helper"))).click()
@@ -88,7 +90,12 @@ def fetchDataFromAQHA(sheetId, sheetName):
         browser = getGoogleDriver()
         browser.get(url)
         WebDriverWait(browser, 100).until(lambda browser: browser.execute_script('return document.readyState') == 'complete')
-        time.sleep(2)
+        while True:
+            try:
+                WebDriverWait(browser, 30).until(lambda browser: browser.execute_script('return document.getElementById("divProgress").innerHTML') == '')
+                break
+            except:
+                browser.refresh()
     service = getGoogleService("sheets", "v4")
     result = service.spreadsheets().values().get(spreadsheetId=sheetId, range=f"{sheetName}!A1:Z").execute().get('values')
     header = result.pop(0)

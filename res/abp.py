@@ -1,5 +1,6 @@
 import sys, os
 from multiprocessing import Process
+from constants import getGoogleService, ORDER_DIR_NAME
 
 import thread1 as t1
 import thread2 as t2
@@ -20,7 +21,25 @@ class Unbuffered(object):
 
 def run(sheetId, sheetName):
     sys.stdout = Unbuffered(sys.stdout)
-    
+
+    print("Preparing to run script...")
+    service = getGoogleService('gmail', 'v1')
+    results = service.users().messages().list(userId='me', labelIds=['INBOX'], maxResults=10, q="from:noreply@aqha.org").execute()
+    messages = results.get('messages')
+    if messages:
+        for message in messages:
+            msg_id = message['id']
+            service.users().messages().delete(userId='me', id=msg_id).execute()
+
+    if os.path.exists("res/t1.txt"):
+        os.remove("res/t1.txt")
+
+    if os.path.exists(ORDER_DIR_NAME):
+        files = os.listdir(ORDER_DIR_NAME)
+        for file in files:
+            os.remove(ORDER_DIR_NAME + "/" + file)
+
+    print("Preparing done.")
     proc1 = Process(target=t1.start, args=[sheetId, sheetName])
     proc2 = Process(target=t2.start)
     proc3 = Process(target=t3.start, args=[sheetId, sheetName])

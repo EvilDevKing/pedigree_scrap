@@ -1,10 +1,17 @@
-from constants import getGoogleService
+import requests
 
-service = getGoogleService("sheets", "v4")
-sheet_metadata = service.spreadsheets().get(spreadsheetId="18wZ_UlyQKmhzygdb8nk8I6xAyIPvxJm3Ofh58d1NKZs").execute()
-sheets = sheet_metadata.get('sheets', '')
-flag = False
-for sheet_info in sheets:
-    if sheet_info["properties"]["title"] == "AQHA":
-        flag = True
-print(flag)
+body_data = {
+    "CustomerEmailAddress": "pascalmartin973@gmail.com",
+    "CustomerID": 1,
+    "HorseName": "Brown",
+    "RecordOutputTypeCode": "P",
+    "RegistrationNumber": "0419888",
+    "ReportCode": 21,
+    "ReportId": 10008
+}
+r1 = requests.post("https://aqhaservices2.aqha.com/api/FreeRecords/SaveFreeRecord", json=body_data)
+if r1.status_code == 200:
+    if r1.json():
+        print("Sent!")
+    else:
+        print("Failed!")

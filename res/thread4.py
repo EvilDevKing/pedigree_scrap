@@ -1,13 +1,8 @@
 import fitz
-from selenium.webdriver.support.ui import WebDriverWait, Select
-from selenium.webdriver.support import expected_conditions as ec
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-import os, re, time, sys
+import os, re, time, sys, requests
 
 from constants import *
 
-driver = None
 search_cnt = 0
 update_cnt = 0
 
@@ -106,54 +101,55 @@ def extractPdf(file_path):
                 names[5] = getExtactName(rawList[ind_other-2])
         return names
     
-def searchFromAQHA(horse_name, ws, sheetId, sheetName, rind, cind):
-    global driver, search_cnt
-    if driver == None:
-        url = "https://aqhaservices.aqha.com/members/record/freerecords"
-        driver = getGoogleDriver()
-        driver.get(url)
-        WebDriverWait(driver, 100).until(lambda browser: browser.execute_script('return document.readyState') == 'complete')
-        time.sleep(1)
-    
-    select_element = Select(WebDriverWait(driver, 30).until(ec.presence_of_element_located((By.CSS_SELECTOR, "select#ddlRecordName"))))
-    select_element.select_by_value("10008")
-    
-    WebDriverWait(driver, 10).until(ec.element_to_be_clickable((By.CSS_SELECTOR, "input#chkHorseName"))).click()
-    
-    input_elem = WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.CSS_SELECTOR, "input#txtEmail")))
-    input_elem.click()
-    input_elem.send_keys(Keys.CONTROL + "a")
-    input_elem.send_keys(Keys.DELETE)
-    # input_elem.send_keys("brittany.holy@gmail.com")
-    input_elem.send_keys("pascalmartin973@gmail.com")
-    time.sleep(0.5)
-    
-    input_elem = WebDriverWait(driver, 10).until(ec.presence_of_element_located((By.CSS_SELECTOR, "input#txtHorseName")))
-    input_elem.click()
-    input_elem.send_keys(Keys.CONTROL + "a")
-    input_elem.send_keys(Keys.DELETE)
-    input_elem.send_keys(horse_name)
-    input_elem.send_keys(Keys.TAB)
-    time.sleep(2)
-    
-    if driver.find_element(By.CSS_SELECTOR, "span.ng-binding").text != "":
-        button_elem = WebDriverWait(driver, 20).until(ec.presence_of_element_located((By.CSS_SELECTOR, "div.text-right.m-m button")))
-        button_elem.click()
-        time.sleep(2)
-        print("THREAD4: Found Horse (" + horse_name + ") on AQHA Server")
-        search_cnt += 1
+def searchFromAQHA(horse_name, ws, sheetId, sheetName, rind, cind, multichoices):
+    global search_cnt
+    r = requests.get(f"https://aqhaservices2.aqha.com/api/HorseRegistration/GetHorseRegistrationDetailByHorseName?horseName={horse_name.title()}")
+    if r.status_code == 200:
+        res = r.json()
+        regist_num = res["RegistrationNumber"]
+        body_data = {
+            # "CustomerEmailAddress": "brittany.holy@gmail.com",
+            "CustomerEmailAddress": "pascalmartin973@gmail.com",
+            "CustomerID": 1,
+            "HorseName": horse_name.title(),
+            "RecordOutputTypeCode": "P",
+            "RegistrationNumber": regist_num,
+            "ReportCode": 21,
+            "ReportId": 10008
+        }
+        r1 = requests.post("https://aqhaservices2.aqha.com/api/FreeRecords/SaveFreeRecord", json=body_data)
+        if r1.status_code == 200:
+            print("THREAD4: Found Horse (" + horse_name + ") on AQHA Server")
+            search_cnt += 1
+        else:
+            print("THREAD1: Failed to send email from AQHA Server.")
     else:
         print("THREAD4: Not found Horse (" + horse_name + ") on AQHA Server")
+        flag = False
         cell_range_str = f"{getColumnLabelByIndex(cind)}{rind}"
-        ws.values().update(
-            spreadsheetId=sheetId,
-            valueInputOption='RAW',
-            range=f"{sheetName}!{cell_range_str}:{cell_range_str}",
-            body=dict(
-                majorDimension='ROWS',
-                values=[[""]]
-            )
-        ).execute()
+        for choice_val in multichoices:
+            if choice_val[0] == f"({horse_name})":
+                ws.values().update(
+                    spreadsheetId=sheetId,
+                    valueInputOption='RAW',
+                    range=f"{sheetName}!{cell_range_str}:{cell_range_str}",
+                    body=dict(
+                        majorDimension='ROWS',
+                        values=[[choice_val[1]]]
+                    )
+                ).execute()
+                flag = True
+        
+        if not flag:
+            ws.values().update(
+                spreadsheetId=sheetId,
+                valueInputOption='RAW',
+                range=f"{sheetName}!{cell_range_str}:{cell_range_str}",
+                body=dict(
+                    majorDimension='ROWS',
+                    values=[[""]]
+                )
+            ).execute()
 
 def updateGSData(file_path, ws, sheetId, sheetName, indexOfHorseHeader, sheetData):
     global update_cnt
@@ -183,6 +179,7 @@ def start(sheetId, sheetName):
     
     service = getGoogleService("sheets", "v4")
     worksheet = service.spreadsheets()
+    multichoices = worksheet.values().get(spreadsheetId=sheetId, range=f"mult choices!A2:B").execute().get('values')
     values = worksheet.values().get(spreadsheetId=sheetId, range=f"{sheetName}!A1:Z").execute().get('values')
     header = values.pop(0)
     indexOfHorseHeader = header.index('Horse')
@@ -190,7 +187,7 @@ def start(sheetId, sheetName):
         if len(row) > 9:
             for cind, c_val in enumerate(row):
                 if re.match(r'\(.*?\)', c_val):
-                    searchFromAQHA(c_val.lstrip("(").rstrip(")"), worksheet, sheetId, sheetName, rind+2, cind+indexOfHorseHeader)
+                    searchFromAQHA(c_val.lstrip("(").rstrip(")"), worksheet, sheetId, sheetName, rind+2, cind+indexOfHorseHeader, multichoices)
     while True:
         if update_cnt == search_cnt:
             createFileWith("res/t4.txt", "finish", "w")
@@ -200,7 +197,4 @@ def start(sheetId, sheetName):
             for file in files:
                 updateGSData(ORDER_DIR_NAME + "/" + file, worksheet, sheetId, sheetName, indexOfHorseHeader, values)
         
-    driver.quit()
     print("Forth process finished")
-
-start("13b-fBnZpZFC_PTTuJ0Y9pYA-UYIgbsUDCCHjga5RBzs", "horses")

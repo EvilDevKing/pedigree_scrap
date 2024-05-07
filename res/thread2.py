@@ -16,7 +16,6 @@ class Unbuffered(object):
 def checkMailAndDownloadOrderFile():
     # Create Gmail API service
     service = getGoogleService('gmail', 'v1')
-    pdf_cnt = 0
     while True:
         if os.path.exists("res/t3.txt"):
             os.remove("res/t3.txt")
@@ -52,7 +51,6 @@ def checkMailAndDownloadOrderFile():
                             filename = part['filename']
                             
                             createFileWith(ORDER_DIR_NAME + "/" + filename, file_data, 'wb')
-                            pdf_cnt += 1
                             print("Stored a pdf order file : " + filename)
                     service.users().messages().delete(userId='me', id=msg_id).execute()
                 except: continue

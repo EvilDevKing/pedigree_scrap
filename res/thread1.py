@@ -2,7 +2,7 @@ from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-import time, sys
+import time, sys, requests
 
 from constants import *
 
@@ -22,16 +22,15 @@ class Unbuffered(object):
 
 def searchNameFromABP(service, sheetId, sheetName, indexOfHorseHeader, horse_name, index):
     sheet_data = []
-    url = "https://beta.allbreedpedigree.com/search?query_type=check&search_bar=horse&g=5&inbred=Standard"
-    
-    browser.execute_script(f"window.open('{url}')")
-    browser.switch_to.window(browser.window_handles[1])
-    
-    WebDriverWait(browser, 100).until(lambda browser: browser.execute_script('return document.readyState') == 'complete')
-    try:
-        WebDriverWait(browser, 10).until(ec.element_to_be_clickable((By.CSS_SELECTOR, "button.btn-close"))).click()
-    except: print("")
-    time.sleep(2)
+    global browser
+    if browser == None:
+        browser = getGoogleDriver()
+        browser.get("https://beta.allbreedpedigree.com/search?query_type=check&search_bar=horse&g=5&inbred=Standard")
+        WebDriverWait(browser, 100).until(lambda browser: browser.execute_script('return document.readyState') == 'complete')
+        try:
+            WebDriverWait(browser, 10).until(ec.element_to_be_clickable((By.CSS_SELECTOR, "button.btn-close"))).click()
+        except: print("")
+        time.sleep(1)
 
     WebDriverWait(browser, 10).until(ec.element_to_be_clickable((By.CSS_SELECTOR, "div#header-search-input-helper"))).click()
     input_elem = WebDriverWait(browser, 10).until(ec.element_to_be_clickable((By.CSS_SELECTOR, "input#header-search-input")))
@@ -64,12 +63,8 @@ def searchNameFromABP(service, sheetId, sheetName, indexOfHorseHeader, horse_nam
                     table = browser.find_element(By.CSS_SELECTOR, "table.pedigree-table tbody")
                     sheet_data.append(getSheetDataFrom(table))
                 except:
-                    browser.close()
-                    browser.switch_to.window(browser.window_handles[0])
                     print("THREAD1: Not found (" + horse_name + ") in https://beta.allbreedpedigree.com/")
         except:
-            browser.close()
-            browser.switch_to.window(browser.window_handles[0])
             print("THREAD1: Not found (" + horse_name + ") in https://beta.allbreedpedigree.com/")
 
     if len(sheet_data) != 0:
@@ -82,20 +77,9 @@ def searchNameFromABP(service, sheetId, sheetName, indexOfHorseHeader, horse_nam
                 values=sheet_data)
         ).execute()
 
-def fetchDataFromAQHA(sheetId, sheetName):
-    search_cnt = 0
+def fetchDataFromAQHA(sheetId, sheetName, initialCnt):
+    search_cnt = initialCnt
     global browser
-    if browser == None:
-        url = "https://aqhaservices.aqha.com/members/record/freerecords"
-        browser = getGoogleDriver()
-        browser.get(url)
-        WebDriverWait(browser, 100).until(lambda browser: browser.execute_script('return document.readyState') == 'complete')
-        while True:
-            try:
-                WebDriverWait(browser, 30).until(lambda browser: browser.execute_script('return document.getElementById("divProgress").innerHTML') == '')
-                break
-            except:
-                browser.refresh()
     service = getGoogleService("sheets", "v4")
     result = service.spreadsheets().values().get(spreadsheetId=sheetId, range=f"{sheetName}!A1:Z").execute().get('values')
     header = result.pop(0)
@@ -118,46 +102,38 @@ def fetchDataFromAQHA(sheetId, sheetName):
     for index, row_data in enumerate(result):
         if len(row_data) == 0 or row_data[indexOfHorseHeader] == "": continue
         name = row_data[0]
-        select_element = Select(WebDriverWait(browser, 30).until(ec.presence_of_element_located((By.CSS_SELECTOR, "select#ddlRecordName"))))
-        select_element.select_by_value("10008")
-        
-        WebDriverWait(browser, 10).until(ec.element_to_be_clickable((By.CSS_SELECTOR, "input#chkHorseName"))).click()
-        
-        input_elem = WebDriverWait(browser, 10).until(ec.presence_of_element_located((By.CSS_SELECTOR, "input#txtEmail")))
-        input_elem.click()
-        input_elem.send_keys(Keys.CONTROL + "a")
-        input_elem.send_keys(Keys.DELETE)
-        # input_elem.send_keys("brittany.holy@gmail.com")
-        input_elem.send_keys("pascalmartin973@gmail.com")
-        time.sleep(0.5)
-        
-        input_elem = WebDriverWait(browser, 10).until(ec.presence_of_element_located((By.CSS_SELECTOR, "input#txtHorseName")))
-        input_elem.click()
-        input_elem.send_keys(Keys.CONTROL + "a")
-        input_elem.send_keys(Keys.DELETE)
-        input_elem.send_keys(name)
-        input_elem.send_keys(Keys.TAB)
-        time.sleep(2)
-        
-        if browser.find_element(By.CSS_SELECTOR, "span.ng-binding").text != "":
-            button_elem = WebDriverWait(browser, 20).until(ec.presence_of_element_located((By.CSS_SELECTOR, "div.text-right.m-m button")))
-            button_elem.click()
-            time.sleep(2)
-            print("THREAD1: Found Horse (" + name + ") on AQHA Server")
-            search_cnt += 1
+        r = requests.get(f"https://aqhaservices2.aqha.com/api/HorseRegistration/GetHorseRegistrationDetailByHorseName?horseName={name}")
+        if r.status_code == 200:
+            res = r.json()
+            regist_num = res["RegistrationNumber"]
+            body_data = {
+                # "CustomerEmailAddress": "brittany.holy@gmail.com",
+                "CustomerEmailAddress": "pascalmartin973@gmail.com",
+                "CustomerID": 1,
+                "HorseName": name,
+                "RecordOutputTypeCode": "P",
+                "RegistrationNumber": regist_num,
+                "ReportCode": 21,
+                "ReportId": 10008
+            }
+            r1 = requests.post("https://aqhaservices2.aqha.com/api/FreeRecords/SaveFreeRecord", json=body_data)
+            if r1.status_code == 200:
+                print("THREAD1: Found Horse (" + name + ") on AQHA Server")
+                search_cnt += 1
+            else:
+                print("THREAD1: Failed to send email from AQHA Server.")
         else:
             print("THREAD1: Not found Horse (" + name + ") on AQHA Server")
             searchNameFromABP(service, sheetId, sheetName, indexOfHorseHeader, name, index)
-        
-        time.sleep(5)
+        time.sleep(1)
         cnt += 1
         print("Processed " + str(cnt))
     browser.quit()
     createFileWith("res/t1.txt", str(search_cnt), "w")
 
-def start(sheetId, sheetName):
+def start(sheetId, sheetName, initialCnt):
     sys.stdout = Unbuffered(sys.stdout)
     print("Main process started")
-    fetchDataFromAQHA(sheetId, sheetName)
+    fetchDataFromAQHA(sheetId, sheetName, initialCnt)
     print("---- Fetch Done ----")
     print("Main process finished")

@@ -179,7 +179,7 @@ def updateGSData(file_name, sheetId, sheetName, indexOfHorse, sheetData):
                 ).execute()
     os.remove(file_path)
 
-def start(sheetId, sheetName):
+def start(sheetId, sheetName, initialCnt):
     sys.stdout = Unbuffered(sys.stdout)
     print("Third process started")
     createOrderDirIfDoesNotExists()
@@ -189,7 +189,7 @@ def start(sheetId, sheetName):
     values = worksheet.values().get(spreadsheetId=sheetId, range=f"{sheetName}!A1:Z").execute().get('values')
     header = values.pop(0)
     indexOfHorseHeader = header.index('Horse')
-    update_cnt = 0
+    update_cnt = initialCnt
     while True:
         if os.path.exists("res/t1.txt"):
             with open("res/t1.txt", "r") as file:

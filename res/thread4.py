@@ -19,6 +19,7 @@ class Unbuffered(object):
        return getattr(self.stream, attr)
 
 def getExtactName(org_name):
+    org_name = org_name.replace("'", "")
     if re.search(r'\s+\d+', org_name):
         return re.sub(r'\s+\d+', '', org_name).title()
     else:
@@ -125,7 +126,6 @@ def searchFromAQHA(horse_name, ws, sheetId, sheetName, rind, cind, multichoices)
             print("THREAD1: Failed to send email from AQHA Server.")
     else:
         print("THREAD4: Not found Horse (" + horse_name + ") on AQHA Server")
-        flag = False
         cell_range_str = f"{getColumnLabelByIndex(cind)}{rind}"
         for choice_val in multichoices:
             if choice_val[0] == f"({horse_name})":
@@ -138,18 +138,7 @@ def searchFromAQHA(horse_name, ws, sheetId, sheetName, rind, cind, multichoices)
                         values=[[choice_val[1]]]
                     )
                 ).execute()
-                flag = True
-        
-        if not flag:
-            ws.values().update(
-                spreadsheetId=sheetId,
-                valueInputOption='RAW',
-                range=f"{sheetName}!{cell_range_str}:{cell_range_str}",
-                body=dict(
-                    majorDimension='ROWS',
-                    values=[[""]]
-                )
-            ).execute()
+    time.sleep(1)
 
 def updateGSData(file_path, ws, sheetId, sheetName, indexOfHorseHeader, sheetData):
     global update_cnt

@@ -24,6 +24,7 @@ class Unbuffered(object):
        return getattr(self.stream, attr)
 
 def getExtactName(org_name):
+    org_name = org_name.replace("'", "")
     if re.search(r'\s+\d+', org_name):
         return re.sub(r'\s+\d+', '', org_name).title()
     else:
@@ -198,6 +199,11 @@ def start(sheetId, sheetName, initialCnt):
             if update_cnt >= int(t1_result):
                 os.remove("res/t1.txt")
                 createFileWith("res/t3.txt", "finish", "w")
+                files = getOrderFiles()
+                if len(files) > 0:
+                    for file in files:
+                        updateGSData(file, sheetId, sheetName, indexOfHorseHeader, values)
+                        update_cnt += 1
                 break
             
         files = getOrderFiles()

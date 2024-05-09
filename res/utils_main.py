@@ -14,7 +14,6 @@ except ImportError:
 
 if __name__ == '__main__':
     init() # initialize a colorama usage
-    
     print(f"{Fore.GREEN}[1] Start buckle pdf script")
     print(f"[2] Start horse age script")
     print(f"[3] Start okc result script")
@@ -45,4 +44,3 @@ if __name__ == '__main__':
                 print("Sorry, you didn't provide a sheet name.")
             else:
                 bbr.run(sheetId, sheet_name)
-    input("Press any key to exit...")

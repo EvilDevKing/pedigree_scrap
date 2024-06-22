@@ -1,13 +1,12 @@
+import base64, os, time, sys, re
 import fitz
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-import os, re, sys
-from concurrent.futures import ThreadPoolExecutor
-
 from constants import *
 
+driver = None
 worksheet = None
 
 class Unbuffered(object):
@@ -21,7 +20,7 @@ class Unbuffered(object):
        self.stream.flush()
    def __getattr__(self, attr):
        return getattr(self.stream, attr)
-
+   
 def getExtactName(org_name):
     org_name = org_name.replace("'", "")
     if re.search(r'\s+\d+', org_name):
@@ -95,9 +94,9 @@ def extractPdf(file_path):
                 names[5] = getExtactName(rawList[ind_other-2])
         return names
 
-def findSireFromSite(driver, cn):
-    WebDriverWait(driver, 10).until(ec.element_to_be_clickable((By.CSS_SELECTOR, "div#header-search-input-helper"))).click()
-    input_elem = WebDriverWait(driver, 10).until(ec.element_to_be_clickable((By.CSS_SELECTOR, "input#header-search-input")))
+def findSireFromSite(cn):
+    WebDriverWait(driver, 5).until(ec.element_to_be_clickable((By.CSS_SELECTOR, "div#header-search-input-helper"))).click()
+    input_elem = WebDriverWait(driver, 5).until(ec.element_to_be_clickable((By.CSS_SELECTOR, "input#header-search-input")))
     input_elem.send_keys(Keys.CONTROL + "a")
     input_elem.send_keys(Keys.DELETE)
     input_elem.send_keys(cn, Keys.ENTER)
@@ -131,8 +130,7 @@ def findSireFromSite(driver, cn):
         except:
             return ""
 
-def updateGSData(driver, file_name, sheetId, sheetName, indexOfHorse, sheetData, multichoices):
-    file_path = ORDER_DIR_NAME + "/" + file_name
+def updateGSData(file_path, sheetId, sheetName, indexOfHorse, sheetData, multichoices):
     update_data = []
     ext_names = extractPdf(file_path)
     if ext_names is None: return
@@ -142,7 +140,7 @@ def updateGSData(driver, file_name, sheetId, sheetName, indexOfHorse, sheetData,
         update_data.append(ext_names[i])
     
     for i in range(7, 15):
-        sire_name = findSireFromSite(driver, ext_names[i])
+        sire_name = findSireFromSite(ext_names[i])
         if sire_name.strip() == "":
             tmp_name = ""
             for choice_val in multichoices:
@@ -166,44 +164,72 @@ def updateGSData(driver, file_name, sheetId, sheetName, indexOfHorse, sheetData,
                         majorDimension='ROWS',
                         values=[update_data])
                 ).execute()
-    print("Proceed: " + file_name)
     os.remove(file_path)
 
-def task(files, sheetId, sheetName, multichoices):
-    if len(files) > 0:
-        url = "https://beta.allbreedpedigree.com/search?query_type=check&search_bar=horse&g=5&inbred=Standard"
-        driver = getGoogleDriver()
-        driver.get(url)
-        WebDriverWait(driver, 10).until(lambda driver: driver.execute_script('return document.readyState') == 'complete')
-        WebDriverWait(driver, 10).until(ec.element_to_be_clickable((By.CSS_SELECTOR, "button.btn-close"))).click()
-        values = worksheet.values().get(spreadsheetId=sheetId, range=f"{sheetName}!A1:Z").execute().get('values')
-        header = values.pop(0)
-        indexOfHorseHeader = header.index('Horse')
-        for file in files:
-            updateGSData(driver, file, sheetId, sheetName, indexOfHorseHeader, values, multichoices)
-    return "Success"
+def checkMailAndDownloadOrderFile(sheetId, sheetName, multichoices):
+    pdf_cnt = 0
+    # Create Gmail API service
+    service = getGoogleService('gmail', 'v1')
+    while True:
+        if os.path.exists("res/t1.txt"):
+            with open("res/t1.txt", "r") as file:
+                c = file.read()
+                file.close()
+                total_cnt = int(c)
+                if pdf_cnt >= total_cnt:
+                    os.remove("res/t1.txt")
+                    break
+        # Fetch messages from inbox
+        results = service.users().messages().list(userId='me', labelIds=['INBOX'], maxResults=10, q="from:noreply@aqha.org").execute()
+        messages = results.get('messages')
+        if not messages:
+            print("No messages found.")
+        else:
+            print("New Messages: " + str(len(messages)))
+            for message in messages:
+                msg_id = message['id']
+                msg_body = service.users().messages().get(userId='me', id=msg_id).execute()
+                try:
+                    parts = msg_body['payload']['parts']
+                    for part in parts:
+                        if part['filename']:
+                            if 'data' in part['body']:
+                                data = part['body']['data']
+                            else:
+                                att_id = part['body']['attachmentId']
+                                att = service.users().messages().attachments().get(userId='me', messageId=msg_id, id=att_id).execute()
+                                data = att['data']
+                            file_data = base64.urlsafe_b64decode(data.encode('UTF-8'))
+                            filename = part['filename']
+                            
+                            createFileWith(ORDER_DIR_NAME + "/" + filename, file_data, 'wb')
+                            print("Stored a pdf order file : " + filename)
+                            time.sleep(0.5)
+                            values = worksheet.values().get(spreadsheetId=sheetId, range=f"{sheetName}!A1:Z").execute().get('values')
+                            header = values.pop(0)
+                            indexOfHorseHeader = header.index('Horse')
+                            updateGSData(ORDER_DIR_NAME + "/" + filename, sheetId, sheetName, indexOfHorseHeader, values, multichoices)
+                            pdf_cnt += 1
+                    service.users().messages().delete(userId='me', id=msg_id).execute()
+                except: continue
+        time.sleep(5)
 
 def start(sheetId, sheetName):
     sys.stdout = Unbuffered(sys.stdout)
-    print("Third process started")
+    print("Second process started")
     createOrderDirIfDoesNotExists()
-    global worksheet
-    while True:
-        if os.path.exists("res/t2.txt"):
-            os.remove("res/t2.txt")
-            break
+    global worksheet, driver
+    url = "https://beta.allbreedpedigree.com/search?query_type=check&search_bar=horse&g=5&inbred=Standard"
+    driver = getGoogleDriver()
+    driver.get(url)
+    WebDriverWait(driver, 10).until(lambda driver: driver.execute_script('return document.readyState') == 'complete')
+    WebDriverWait(driver, 10).until(ec.element_to_be_clickable((By.CSS_SELECTOR, "button.btn-close"))).click()
     service = getGoogleService("sheets", "v4")
     worksheet = service.spreadsheets()
     try:
         multichoices = worksheet.values().get(spreadsheetId=sheetId, range=f"mult choices!A2:B").execute().get('values')
-        files = getOrderFiles()
-        task_num = int(len(files) / 3)
-        with ThreadPoolExecutor(max_workers=4) as executor:
-            executor.submit(task, files[:task_num], sheetId, sheetName, multichoices)
-            executor.submit(task, files[task_num:2*task_num], sheetId, sheetName, multichoices)
-            executor.submit(task, files[2*task_num:3*task_num], sheetId, sheetName, multichoices)
-            executor.submit(task, files[3*task_num:], sheetId, sheetName, multichoices)
+        checkMailAndDownloadOrderFile(sheetId, sheetName, multichoices)
     except:
         print("There is no <mult choices> sheet!")
-
-start("13b-fBnZpZFC_PTTuJ0Y9pYA-UYIgbsUDCCHjga5RBzs", "horses")
+    driver.quit()
+    print("Second process finished")

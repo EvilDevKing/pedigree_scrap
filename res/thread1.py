@@ -43,7 +43,6 @@ def searchNameFromABP(service, sheetId, sheetName, indexOfHorseHeader, horse_nam
     except:
         try:
             tds = browser.find_elements(By.CSS_SELECTOR, "table.layout-table tbody td[class]:nth-child(1)")
-
             txt_vals = []
             links = []
             for td in tds:
@@ -77,8 +76,8 @@ def searchNameFromABP(service, sheetId, sheetName, indexOfHorseHeader, horse_nam
                 values=sheet_data)
         ).execute()
 
-def fetchDataFromAQHA(sheetId, sheetName, initialCnt):
-    search_cnt = initialCnt
+def fetchDataFromAQHA(sheetId, sheetName):
+    search_cnt = 0
     global browser
     service = getGoogleService("sheets", "v4")
     result = service.spreadsheets().values().get(spreadsheetId=sheetId, range=f"{sheetName}!A1:Z").execute().get('values')
@@ -128,12 +127,13 @@ def fetchDataFromAQHA(sheetId, sheetName, initialCnt):
         time.sleep(1)
         cnt += 1
         print("Processed " + str(cnt))
-    browser.quit()
+    if browser != None:
+        browser.quit()
     createFileWith("res/t1.txt", str(search_cnt), "w")
 
-def start(sheetId, sheetName, initialCnt):
+def start(sheetId, sheetName):
     sys.stdout = Unbuffered(sys.stdout)
     print("Main process started")
-    fetchDataFromAQHA(sheetId, sheetName, initialCnt)
+    fetchDataFromAQHA(sheetId, sheetName)
     print("---- Fetch Done ----")
     print("Main process finished")

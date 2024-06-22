@@ -23,7 +23,7 @@ def update_google_sheets(sheetId, data):
 
 def getNames(filename):
     data = []
-    with fitz.open("reports/" + filename) as doc:
+    with fitz.open(REPORT_DIR_NAME + "/" + filename) as doc:
         for page in doc:
             content = page.get_text()
             entries = content.split("\n")
@@ -50,13 +50,19 @@ def getNames(filename):
                             else:
                                 dataArr.append(dt.strip())
                                 dataArr.append(sub_data[7].strip())
+                            dataArr.append("")
+                    else:
+                        match = re.search(r'(\d+\.\d+)', dt)
+                        if match:
+                            decimal = match.group(1)
+                            dataArr[2] = decimal
                 if len(dataArr) > 1:
                     data.append(dataArr)
     return data
-    
+
 def getPrices(filename):
     data = []
-    pdffileObj = open("reports/" + filename, 'rb')
+    pdffileObj = open(REPORT_DIR_NAME + "/" + filename, 'rb')
     pdfreader = PdfReader(pdffileObj)
     for page in pdfreader.pages:
         content = page.extract_text()
@@ -84,19 +90,18 @@ def getRbData(filename):
     data = []
     names = getNames(filename)
     prices = getPrices(filename)
-    # print(len(prices))
     for i, name in enumerate(names):
         price = prices[i]
         if len(price) > 1:
-            data.append([name[0], name[1], price[0], price[1], price[2]])
+            data.append([name[0], name[1], name[2], price[0], price[1], price[2]])
         else:
-            data.append([name[0], name[1], 0, 0, 0])
-    data.append(["", "", "", "", ""])
+            data.append([name[0], name[1], name[2], 0, 0, 0])
+    data.append(["", "", "", "", "", ""])
     return data
     
 def getPbData(filename):
     data = []
-    with fitz.open("reports/" + filename) as doc:
+    with fitz.open(REPORT_DIR_NAME + "/" + filename) as doc:
         for page in doc:
             content = page.get_text()
             entries = content.split("\n")
@@ -122,6 +127,7 @@ def getPbData(filename):
                         else:
                             dataArr.append(dt.strip())
                             dataArr.append(sub_data[7].strip())
+                        dataArr.append("")
                     else:
                         if "$" in dt:
                             splt_dt = dt.split(" ")
@@ -142,11 +148,16 @@ def getPbData(filename):
                             else:
                                 f = dt.index("$")
                                 dataArr.append(int(dt[f:].replace(',', '').lstrip('$')))
-                if len(dataArr) == 2:
+                        else:
+                            match = re.search(r'(\d+\.\d+)', dt)
+                            if match:
+                                decimal = match.group(1)
+                                dataArr[2] = decimal
+                if len(dataArr) == 3:
                     for i in range(3):
                         dataArr.append(0)
                 data.append(dataArr)
-    data.append(["", "", "", "", ""])
+    data.append(["", "", "", "", "", ""])
     return data
 
 class Unbuffered(object):
@@ -165,21 +176,21 @@ def run(sheetId):
     sys.stdout = Unbuffered(sys.stdout)
     print("Processing...")
     sheet_data = []
-    sheet_data.append(["Horse", "Rider", "Owner Price", "Stallion Price", "Breeder Price"])
-    if not os.path.exists("reports"):
-        os.makedirs("reports")
+    sheet_data.append(["Horse", "Rider", "Time", "Owner Price", "Stallion Price", "Breeder Price"])
+    if not os.path.exists(REPORT_DIR_NAME):
+        os.makedirs(REPORT_DIR_NAME)
     
-    files = os.listdir("reports")
+    files = os.listdir(REPORT_DIR_NAME)
     if len(files) == 0:
         print("Not found any report files in \"reports\" directory.")
     else:
         for filename in files:
-            sheet_data.append(["", "", filename, "", ""])
-            with fitz.open("reports/" + filename) as doc:
+            sheet_data.append(["", "", filename, "", "", ""])
+            with fitz.open(REPORT_DIR_NAME + "/" + filename) as doc:
                 content = doc[0].get_text()
-                with open('content.txt', 'w') as file:
-                    file.write(content)
-                    file.close()
+                # with open('content.txt', 'w') as file:
+                #     file.write(content)
+                #     file.close()
                 if re.search(r'Amateur', content):
                     sheet_data.extend(getPbData(filename))
                 else:

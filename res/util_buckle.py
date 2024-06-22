@@ -15,7 +15,7 @@ def update_google_sheets(sheetId, data):
     service.spreadsheets().values().update(
             spreadsheetId=sheetId,
             valueInputOption='RAW',
-            range="horses!A1:E",
+            range="horses!A1:F",
             body=dict(
                 majorDimension='ROWS',
                 values=data)
@@ -67,7 +67,8 @@ def getPrices(filename):
     for page in pdfreader.pages:
         content = page.extract_text()
         entries = content.split("\n")
-        for i in range(7, len(entries), 8):
+        start_index = [i for i, x in enumerate(entries) if "Owner Stallion Breeder" in x]
+        for i in range(start_index[0]+1, len(entries), 8):
             numbers = []
             try:
                 tmp = entries[i+7]

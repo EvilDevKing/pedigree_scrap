@@ -1,10 +1,6 @@
 import fitz
-from selenium.webdriver.support.ui import WebDriverWait, Select
-from selenium.webdriver.support import expected_conditions as ec
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-import os, re, sys
-from concurrent.futures import ThreadPoolExecutor
+import os, re, sys, requests
+from bs4 import BeautifulSoup
 
 from constants import *
 
@@ -77,11 +73,26 @@ def extractPdf(file_path):
         return None
     else:
         tmp_names = []
+        tmp_vals = []
         for i, val in enumerate(data):
-            if i < len(data)-1:
-                if re.search(r'^\d{2}/\d{2}/\d{4}', data[i+1]):
-                    tmp_names.append(val)
+            if re.search(r'^\d{2}/\d{2}/\d{4}', val):
+                if len(tmp_vals) == 3:
+                    if i > 3:
+                        tmp_names.append(f"{tmp_vals[1]}{tmp_vals[2]}")
+                    else:
+                        tmp_names.append(f"{tmp_vals[0]}{tmp_vals[1]}{tmp_vals[2]}")
+                elif len(tmp_vals) == 2:
+                    if i > 2:
+                        tmp_names.append(tmp_vals[1])
+                    else:
+                        tmp_names.append(f"{tmp_vals[0]}{tmp_vals[1]}")
+                elif len(tmp_vals) == 1:
+                    tmp_names.append(tmp_vals[0])
+                tmp_vals = []
+            else:
+                tmp_vals.append(val)
         names = [None] * 15
+        print(tmp_names)
         for index, name in enumerate(tmp_names):
             if hasCurrentOwner:
                 names[NAME_INDEXES[index]] = getExtactName(name)
@@ -95,54 +106,55 @@ def extractPdf(file_path):
                 names[5] = getExtactName(rawList[ind_other-2])
         return names
 
-def findSireFromSite(driver, cn):
-    WebDriverWait(driver, 10).until(ec.element_to_be_clickable((By.CSS_SELECTOR, "div#header-search-input-helper"))).click()
-    input_elem = WebDriverWait(driver, 10).until(ec.element_to_be_clickable((By.CSS_SELECTOR, "input#header-search-input")))
-    input_elem.send_keys(Keys.CONTROL + "a")
-    input_elem.send_keys(Keys.DELETE)
-    input_elem.send_keys(cn, Keys.ENTER)
-    
-    try:
-        table = driver.find_element(By.CSS_SELECTOR, "table.pedigree-table tbody")
-        return getSireNameFromTable(table)
-    except:
-        try:
-            tds = driver.find_elements(By.CSS_SELECTOR, "table.layout-table tbody td[class]:nth-child(1)")
-            txt_vals = []
-            links = []
-            for td in tds:
-                txt_vals.append(td.text)
-                links.append(td.find_element(By.TAG_NAME, "a").get_attribute("href"))
-            indexes = [x for x in txt_vals if x.lower() == cn.lower()]
-            if len(indexes) == 1:
-                driver.get(links[0])
-                WebDriverWait(driver, 10).until(lambda driver: driver.execute_script('return document.readyState') == 'complete')
-                table = driver.find_element(By.CSS_SELECTOR, "table.pedigree-table tbody")
-                return getSireNameFromTable(table)
-            else:
-                try:
-                    select = Select(driver.find_element(By.CSS_SELECTOR, "select#filter-match"))
-                    select.select_by_value("exact")
-                    WebDriverWait(driver, 10).until(lambda driver: driver.execute_script('return document.readyState') == 'complete')
-                    table = driver.find_element(By.CSS_SELECTOR, "table.pedigree-table tbody")
-                    return getSireNameFromTable(table)
-                except:
-                    return ""
-        except:
-            return ""
+def findSireFromSite(cn):
+    r = requests.get(f"https://beta.allbreedpedigree.com/search?query_type=check&search_bar=horse&g=5&inbred=Standard&breed=&query={cn}", timeout=60)
+    if r.status_code == 200:
+        soup = BeautifulSoup(r.content, 'html.parser')
+        table = soup.select_one("table.pedigree-table")
+        if table != None:
+            return getSireNameFromTable(table)
+        else:
+            tds = soup.select("table.layout-table td[class]:nth-child(1)")
+            if tds != None or len(tds) != 0:
+                txt_vals = []
+                links = []
+                for td in tds:
+                    txt_vals.append(td.text)
+                    links.append(td.select_one("a").get("href"))
+                indexes = [x for x in txt_vals if x.lower() == cn.lower()]
+                if len(indexes) == 1:
+                    r1 = requests.get(links[0], timeout=60)
+                    if r1.status_code == 200:
+                        soup1 = BeautifulSoup(r1.content, 'html.parser')
+                        table = soup1.select_one("table.pedigree-table")
+                        if table != None:
+                            return getSireNameFromTable(table)
+                        else: return ""
+                    else: return ""
+                else:
+                    r2 = requests.get(f"https://beta.allbreedpedigree.com/search?match=exact&breed=&sex=&query={cn}", timeout=60)
+                    if r2.status_code == 200:
+                        soup2 = BeautifulSoup(r2.content, 'html.parser')
+                        table = soup2.select_one("table.pedigree-table")
+                        if table != None:
+                            return getSireNameFromTable(table)
+                        else: return ""
+                    else: return ""
+            else: return ""
+    else: return ""
 
-def updateGSData(driver, file_name, sheetId, sheetName, indexOfHorse, sheetData, multichoices):
+def updateGSData(file_name, sheetId, sheetName, indexOfHorse, sheetData, multichoices):
     file_path = ORDER_DIR_NAME + "/" + file_name
     update_data = []
     ext_names = extractPdf(file_path)
     if ext_names is None: return
 
-    pre_index_list = [1, 5, 3, 5, 7, 11, 9, 13]
+    pre_index_list = [1, 2, 5, 3, 5, 7, 11, 9, 13]
     for i in pre_index_list:
         update_data.append(ext_names[i])
     
     for i in range(7, 15):
-        sire_name = findSireFromSite(driver, ext_names[i])
+        sire_name = findSireFromSite(ext_names[i])
         if sire_name.strip() == "":
             tmp_name = ""
             for choice_val in multichoices:
@@ -154,7 +166,7 @@ def updateGSData(driver, file_name, sheetId, sheetName, indexOfHorse, sheetData,
                 update_data.append(f"({ext_names[i].lower()})")
         else:
             update_data.append(sire_name)
-    
+    print(update_data)
     for id, row in enumerate(sheetData):
         if len(row) != 0:
             if ext_names[0].lower() == row[indexOfHorse].lower():
@@ -167,42 +179,36 @@ def updateGSData(driver, file_name, sheetId, sheetName, indexOfHorse, sheetData,
                         values=[update_data])
                 ).execute()
     print("Proceed: " + file_name)
-    os.remove(file_path)
+    # os.remove(file_path)
 
-def task(files, sheetId, sheetName, multichoices):
-    if len(files) > 0:
-        url = "https://beta.allbreedpedigree.com/search?query_type=check&search_bar=horse&g=5&inbred=Standard"
-        driver = getGoogleDriver()
-        driver.get(url)
-        WebDriverWait(driver, 10).until(lambda driver: driver.execute_script('return document.readyState') == 'complete')
-        WebDriverWait(driver, 10).until(ec.element_to_be_clickable((By.CSS_SELECTOR, "button.btn-close"))).click()
-        values = worksheet.values().get(spreadsheetId=sheetId, range=f"{sheetName}!A1:Z").execute().get('values')
-        header = values.pop(0)
-        indexOfHorseHeader = header.index('Horse')
-        for file in files:
-            updateGSData(driver, file, sheetId, sheetName, indexOfHorseHeader, values, multichoices)
-    return "Success"
-
-def start(sheetId, sheetName):
+def start(sheetId, sheetName, init_cnt):
     sys.stdout = Unbuffered(sys.stdout)
     print("Third process started")
     createOrderDirIfDoesNotExists()
     global worksheet
-    while True:
-        if os.path.exists("res/t2.txt"):
-            os.remove("res/t2.txt")
-            break
     service = getGoogleService("sheets", "v4")
     worksheet = service.spreadsheets()
     try:
-        multichoices = worksheet.values().get(spreadsheetId=sheetId, range=f"mult choices!A2:B").execute().get('values')
-        files = getOrderFiles()
-        task_num = int(len(files) / 3)
-        with ThreadPoolExecutor(max_workers=4) as executor:
-            executor.submit(task, files[:task_num], sheetId, sheetName, multichoices)
-            executor.submit(task, files[task_num:2*task_num], sheetId, sheetName, multichoices)
-            executor.submit(task, files[2*task_num:3*task_num], sheetId, sheetName, multichoices)
-            executor.submit(task, files[3*task_num:], sheetId, sheetName, multichoices)
+        file_cnt = init_cnt
+        while True:
+            if os.path.exists("res/t2.txt"):
+                os.remove("res/t2.txt")
+                with open("res/t1.txt", "r") as file:
+                    c = file.read()
+                    file.close()
+                    total_cnt = int(c)
+                    if file_cnt >= total_cnt:
+                        os.remove("res/t1.txt")
+                break
+            multichoices = worksheet.values().get(spreadsheetId=sheetId, range=f"mult choices!A2:B").execute().get('values')
+            files = getOrderFiles()
+            if len(files) > 0:
+                values = worksheet.values().get(spreadsheetId=sheetId, range=f"{sheetName}!A1:Z").execute().get('values')
+                header = values.pop(0)
+                indexOfHorseHeader = header.index('Horse')
+                for file in files:
+                    updateGSData(file, sheetId, sheetName, indexOfHorseHeader, values, multichoices)
+                    file_cnt += 1
     except:
         print("There is no <mult choices> sheet!")
 

@@ -49,17 +49,32 @@ def extractPdf(file_path):
             if "Horse Details" in text:
                 ind_other = i
                 break
-            
+    print(rawList)
     data = rawList[ind_start+1:ind_end]
     if ind_end == -1:
         print("Pdf parse error")
         return None
     else:
         tmp_names = []
+        tmp_vals = []
+        print(data)
         for i, val in enumerate(data):
-            if i < len(data)-1:
-                if re.search(r'^\d{2}/\d{2}/\d{4}', data[i+1]):
-                    tmp_names.append(val)
+            if re.search(r'^\d{2}/\d{2}/\d{4}', val):
+                if len(tmp_vals) == 3:
+                    if i > 3:
+                        tmp_names.append(f"{tmp_vals[1]}{tmp_vals[2]}")
+                    else:
+                        tmp_names.append(f"{tmp_vals[0]}{tmp_vals[1]}{tmp_vals[2]}")
+                elif len(tmp_vals) == 2:
+                    if i > 2:
+                        tmp_names.append(tmp_vals[1])
+                    else:
+                        tmp_names.append(f"{tmp_vals[0]}{tmp_vals[1]}")
+                elif len(tmp_vals) == 1:
+                    tmp_names.append(tmp_vals[0])
+                tmp_vals = []
+            else:
+                tmp_vals.append(val)
         names = [None] * 15
         for index, name in enumerate(tmp_names):
             if hasCurrentOwner:
@@ -74,5 +89,5 @@ def extractPdf(file_path):
                 names[5] = getExtactName(rawList[ind_other-2])
         return names
 
-ext_names = extractPdf("Order_2023476723.pdf")
+ext_names = extractPdf("res/orders/Order_2023490769.pdf")
 print(ext_names)

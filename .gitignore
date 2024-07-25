@@ -1,5 +1,8 @@
 /res/dist
 /res/build
 /res/orders
+/res/orders_backup
 /res/reports
 .env
+
+__pycache__

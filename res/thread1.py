@@ -1,12 +1,7 @@
-from selenium.webdriver.support.ui import WebDriverWait, Select
-from selenium.webdriver.support import expected_conditions as ec
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 import time, sys, requests
 
+from bs4 import BeautifulSoup
 from constants import *
-
-browser = None
 
 class Unbuffered(object):
    def __init__(self, stream):
@@ -22,49 +17,38 @@ class Unbuffered(object):
 
 def searchNameFromABP(service, sheetId, sheetName, indexOfHorseHeader, horse_name, index):
     sheet_data = []
-    global browser
-    if browser == None:
-        browser = getGoogleDriver()
-        browser.get("https://beta.allbreedpedigree.com/search?query_type=check&search_bar=horse&g=5&inbred=Standard")
-        WebDriverWait(browser, 100).until(lambda browser: browser.execute_script('return document.readyState') == 'complete')
+    r = requests.get(f"https://beta.allbreedpedigree.com/search?query_type=check&search_bar=horse&g=5&inbred=Standard&breed=&query={horse_name}", timeout=60)
+    if r.status_code == 200:
+        soup = BeautifulSoup(r.content, 'html.parser')
         try:
-            WebDriverWait(browser, 10).until(ec.element_to_be_clickable((By.CSS_SELECTOR, "button.btn-close"))).click()
-        except: print("")
-        time.sleep(1)
-
-    WebDriverWait(browser, 10).until(ec.element_to_be_clickable((By.CSS_SELECTOR, "div#header-search-input-helper"))).click()
-    input_elem = WebDriverWait(browser, 10).until(ec.element_to_be_clickable((By.CSS_SELECTOR, "input#header-search-input")))
-    input_elem.send_keys(Keys.CONTROL + "a")
-    input_elem.send_keys(Keys.DELETE)
-    input_elem.send_keys(horse_name, Keys.ENTER)
-    try:
-        table = browser.find_element(By.CSS_SELECTOR, "table.pedigree-table tbody")
-        sheet_data.append(getSheetDataFrom(table))
-    except:
-        try:
-            tds = browser.find_elements(By.CSS_SELECTOR, "table.layout-table tbody td[class]:nth-child(1)")
-            txt_vals = []
-            links = []
-            for td in tds:
-                txt_vals.append(td.text)
-                links.append(td.find_element(By.CSS_SELECTOR, "a").get_attribute("href"))
-            indexes = [x for x in txt_vals if x.lower() == horse_name.lower()]
-            if len(indexes) == 1:
-                browser.get(links[0])
-                WebDriverWait(browser, 10).until(lambda browser: browser.execute_script('return document.readyState') == 'complete')
-                table = browser.find_element(By.CSS_SELECTOR, "table.pedigree-table tbody")
-                sheet_data.append(getSheetDataFrom(table))
-            else:
-                try:
-                    select = Select(browser.find_element(By.CSS_SELECTOR, "select#filter-match"))
-                    select.select_by_value("exact")
-                    WebDriverWait(browser, 10).until(lambda browser: browser.execute_script('return document.readyState') == 'complete')
-                    table = browser.find_element(By.CSS_SELECTOR, "table.pedigree-table tbody")
-                    sheet_data.append(getSheetDataFrom(table))
-                except:
-                    print("THREAD1: Not found (" + horse_name + ") in https://beta.allbreedpedigree.com/")
+            table = soup.select_one("table.pedigree-table")
+            sheet_data.append(getSheetDataFrom(table))
         except:
-            print("THREAD1: Not found (" + horse_name + ") in https://beta.allbreedpedigree.com/")
+            try:
+                tds = soup.select("table.layout-table td[class]:nth-child(1)")
+                txt_vals = []
+                links = []
+                for td in tds:
+                    txt_vals.append(td.text)
+                    links.append(td.select_one("a").get("href"))
+                indexes = [x for x in txt_vals if x.lower() == horse_name.lower()]
+                if len(indexes) == 1:
+                    r1 = requests.get(links[0], timeout=60)
+                    if r1.status_code == 200:
+                        soup1 = BeautifulSoup(r1.content, 'html.parser')
+                        table = soup1.select_one("table.pedigree-table")
+                        sheet_data.append(getSheetDataFrom(table))
+                else:
+                    r2 = requests.get(f"https://beta.allbreedpedigree.com/search?match=exact&breed=&sex=&query={horse_name}", timeout=60)
+                    if r2.status_code == 200:
+                        try:
+                            soup2 = BeautifulSoup(r2.content, 'html.parser')
+                            table = soup2.select_one("table.pedigree-table")
+                            sheet_data.append(getSheetDataFrom(table))
+                        except:
+                            print("THREAD1: Not found (" + horse_name + ") in https://beta.allbreedpedigree.com/")
+            except:
+                print("THREAD1: Not found (" + horse_name + ") in https://beta.allbreedpedigree.com/")
 
     if len(sheet_data) != 0:
         service.spreadsheets().values().update(
@@ -76,8 +60,8 @@ def searchNameFromABP(service, sheetId, sheetName, indexOfHorseHeader, horse_nam
                 values=sheet_data)
         ).execute()
 
-def fetchDataFromAQHA(sheetId, sheetName):
-    search_cnt = 0
+def fetchDataFromAQHA(sheetId, sheetName, init_cnt):
+    search_cnt = init_cnt
     global browser
     service = getGoogleService("sheets", "v4")
     result = service.spreadsheets().values().get(spreadsheetId=sheetId, range=f"{sheetName}!A1:Z").execute().get('values')
@@ -94,7 +78,7 @@ def fetchDataFromAQHA(sheetId, sheetName):
         range=f"{sheetName}!{getColumnLabelByIndex(indexOfHorseHeader+1)}1:Z1",
         body=dict(
             majorDimension='ROWS',
-            values=[["Sire","Dams Sire","Grandsire Top","Grandsire Bottom","Grandsire Sire Top","Grandsire Sire Bottom","Granddams Sire Top","Granddams Sire bottom","Great-Grandsires Sire Top (1)","Great-Granddams Sire Top (2)","Great-Grandsires Sire Top (3)","Great-Granddams Sire Top (4)","Great-Grandsires Sire Bottom (5)","Great-Granddams Sire Bottom (6)","Great-Grandsires Sire Bottom (7)","Great-Granddams Sire Bottom (8)"]])
+            values=[["Sire","Dam","Dams Sire","Grandsire Top","Grandsire Bottom","Grandsire Sire Top","Grandsire Sire Bottom","Granddams Sire Top","Granddams Sire bottom","Great-Grandsires Sire Top (1)","Great-Granddams Sire Top (2)","Great-Grandsires Sire Top (3)","Great-Granddams Sire Top (4)","Great-Grandsires Sire Bottom (5)","Great-Granddams Sire Bottom (6)","Great-Grandsires Sire Bottom (7)","Great-Granddams Sire Bottom (8)"]])
     ).execute()
     #### Fetch the all data from website ####
     cnt = 0
@@ -127,13 +111,12 @@ def fetchDataFromAQHA(sheetId, sheetName):
         time.sleep(1)
         cnt += 1
         print("Processed " + str(cnt))
-    if browser != None:
-        browser.quit()
+    
     createFileWith("res/t1.txt", str(search_cnt), "w")
 
-def start(sheetId, sheetName):
+def start(sheetId, sheetName, init_cnt):
     sys.stdout = Unbuffered(sys.stdout)
     print("Main process started")
-    fetchDataFromAQHA(sheetId, sheetName)
+    fetchDataFromAQHA(sheetId, sheetName, init_cnt)
     print("---- Fetch Done ----")
     print("Main process finished")

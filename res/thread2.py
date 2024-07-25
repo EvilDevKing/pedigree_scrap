@@ -13,8 +13,8 @@ class Unbuffered(object):
    def __getattr__(self, attr):
        return getattr(self.stream, attr)
 
-def checkMailAndDownloadOrderFile():
-    pdf_cnt = 0
+def checkMailAndDownloadOrderFile(init_cnt):
+    pdf_cnt = init_cnt
     # Create Gmail API service
     service = getGoogleService('gmail', 'v1')
     while True:
@@ -24,7 +24,6 @@ def checkMailAndDownloadOrderFile():
                 file.close()
                 total_cnt = int(c)
                 if pdf_cnt >= total_cnt:
-                    os.remove("res/t1.txt")
                     createFileWith("res/t2.txt", "###", "w")
                     break
         # Fetch messages from inbox
@@ -57,9 +56,9 @@ def checkMailAndDownloadOrderFile():
                 except: continue
         time.sleep(5)
 
-def start():
+def start(init_cnt):
     sys.stdout = Unbuffered(sys.stdout)
     print("Second process started")
     createOrderDirIfDoesNotExists()
-    checkMailAndDownloadOrderFile()
+    checkMailAndDownloadOrderFile(init_cnt)
     print("Second process finished")

@@ -1,9 +1,4 @@
 import os
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.common.by import By
-
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -38,27 +33,10 @@ def getGoogleService(service_name, version):
     except HttpError as err:
         print(err)
         return None
-    
-def getGoogleDriver():
-    chrome_options = webdriver.ChromeOptions()
-    chrome_options.add_argument("--window-size=1920,1080")
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--log-level=3")
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-
-    driver.execute_script(
-        "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-    driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
-        "source":
-            "const newProto = navigator.__proto__;"
-            "delete newProto.webdriver;"
-            "navigator.__proto__ = newProto;"
-    })
-    return driver
 
 def getTextValue(list, index):
     try:
-        return list[index].find_element(By.CSS_SELECTOR, "div.block-name").get_attribute("title").title()
+        return list[index].select_one("div.block-name").get("title").title()
     except:
         return ""
     
@@ -85,21 +63,22 @@ def getColumnLabelByIndex(ind):
     return labels[ind]
 
 def getSireNameFromTable(table):
-    tds = table.find_elements(By.CSS_SELECTOR, "td[id]")
-    sire_elem = [element for element in tds if element.get_attribute("id").endswith("M")]
+    tds = table.select("td[id]")
+    sire_elem = [element for element in tds if element.get("id").endswith("M")]
     sire_name = getTextValue(sire_elem, 0)
     return sire_name
 
 def getSheetDataFrom(table):
     row = []
     ## Extract the values will be input in spreadsheet ##
-    tds = table.find_elements(By.CSS_SELECTOR, "td[id]")
-    level0_elem = [element for element in tds if len(element.get_attribute("id")) == 1 and element.get_attribute("id").endswith("M")] ## list of Group A - Expected count : 1
-    level1_elem = [element for element in tds if len(element.get_attribute("id")) == 2 and element.get_attribute("id").endswith("M")] ## list of Group B - Expected count : 2
-    level2_elem = [element for element in tds if len(element.get_attribute("id")) == 3 and element.get_attribute("id").endswith("M")] ## list of Group C - Expected count : 4
-    level3_elem = [element for element in tds if len(element.get_attribute("id")) == 4 and element.get_attribute("id").endswith("M")] ## list of Group D - Expected count : 8
+    tds = table.select("td[id]")
+    level0_elem = [element for element in tds if len(element.get("id")) == 1] ## list of Group A - Expected count : 2
+    level1_elem = [element for element in tds if len(element.get("id")) == 2 and element.get("id").endswith("M")] ## list of Group B - Expected count : 2
+    level2_elem = [element for element in tds if len(element.get("id")) == 3 and element.get("id").endswith("M")] ## list of Group C - Expected count : 4
+    level3_elem = [element for element in tds if len(element.get("id")) == 4 and element.get("id").endswith("M")] ## list of Group D - Expected count : 8
 
     row.append(getTextValue(level0_elem, 0))
+    row.append(getTextValue(level0_elem, 1))
 
     row.append(getTextValue(level1_elem, 1))
     row.append(getTextValue(level1_elem, 0))

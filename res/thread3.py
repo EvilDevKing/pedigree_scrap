@@ -208,6 +208,30 @@ def start(sheetId, sheetName, init_cnt):
             for file in files:
                 updateGSData(file, sheetId, sheetName, indexOfHorseHeader, values, multichoices)
                 file_cnt += 1
+                
+    parenthesis = []
+    values = worksheet.values().get(spreadsheetId=sheetId, range=f"{sheetName}!A1:Z").execute().get('values')
+    for row in values:
+        if len(row) != 0:
+            for col_val in row:
+                if re.match(r'\(.*?\)', col_val):
+                    filtered_choices = [x for x in multichoices if x[0] == col_val]
+                    if len(filtered_choices) == 0:
+                        if len(parenthesis) == 0:
+                            parenthesis.append([col_val, ""])
+                        else:
+                            filtered_value = [x for x in parenthesis if x[0] == col_val]
+                            if len(filtered_value) == 0:
+                                parenthesis.append([col_val, ""])
+    
+    worksheet.values().update(
+        spreadsheetId=sheetId,
+        valueInputOption='RAW',
+        range=f"mult choices!A{str(len(multichoices)+2)}:B",
+        body=dict(
+            majorDimension='ROWS',
+            values=parenthesis)
+    ).execute()
     # except:
     #     print("There is no <mult choices> sheet!")
 

@@ -56,11 +56,10 @@ def run(sheetId, sheetName):
     
     proc1.start()
     proc2.start()
+    proc3.start()
     
     proc1.join()
     proc2.join()
-
-    proc3.start()
     proc3.join()
     
     print("Done!")

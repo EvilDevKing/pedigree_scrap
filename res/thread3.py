@@ -92,7 +92,6 @@ def extractPdf(file_path):
             else:
                 tmp_vals.append(val)
         names = [None] * 15
-        print(tmp_names)
         for index, name in enumerate(tmp_names):
             if hasCurrentOwner:
                 names[NAME_INDEXES[index]] = getExtactName(name)
@@ -166,7 +165,6 @@ def updateGSData(file_name, sheetId, sheetName, indexOfHorse, sheetData, multich
                 update_data.append(f"({ext_names[i].lower()})")
         else:
             update_data.append(sire_name)
-    print(update_data)
     for id, row in enumerate(sheetData):
         if len(row) != 0:
             if ext_names[0].lower() == row[indexOfHorse].lower():
@@ -178,8 +176,8 @@ def updateGSData(file_name, sheetId, sheetName, indexOfHorse, sheetData, multich
                         majorDimension='ROWS',
                         values=[update_data])
                 ).execute()
-    print("Proceed: " + file_name)
-    # os.remove(file_path)
+    print("THREAD3: " + file_name)
+    os.remove(file_path)
 
 def start(sheetId, sheetName, init_cnt):
     sys.stdout = Unbuffered(sys.stdout)
@@ -188,28 +186,29 @@ def start(sheetId, sheetName, init_cnt):
     global worksheet
     service = getGoogleService("sheets", "v4")
     worksheet = service.spreadsheets()
-    try:
-        file_cnt = init_cnt
-        while True:
-            if os.path.exists("res/t2.txt"):
-                os.remove("res/t2.txt")
+    multichoices = worksheet.values().get(spreadsheetId=sheetId, range=f"mult choices!A2:B").execute().get('values')
+    # try:
+    file_cnt = init_cnt
+    while True:
+        if os.path.exists("res/t2.txt"):
+            os.remove("res/t2.txt")
+            if os.path.exists("res/t1.txt"):
                 with open("res/t1.txt", "r") as file:
                     c = file.read()
                     file.close()
                     total_cnt = int(c)
                     if file_cnt >= total_cnt:
                         os.remove("res/t1.txt")
-                break
-            multichoices = worksheet.values().get(spreadsheetId=sheetId, range=f"mult choices!A2:B").execute().get('values')
-            files = getOrderFiles()
-            if len(files) > 0:
-                values = worksheet.values().get(spreadsheetId=sheetId, range=f"{sheetName}!A1:Z").execute().get('values')
-                header = values.pop(0)
-                indexOfHorseHeader = header.index('Horse')
-                for file in files:
-                    updateGSData(file, sheetId, sheetName, indexOfHorseHeader, values, multichoices)
-                    file_cnt += 1
-    except:
-        print("There is no <mult choices> sheet!")
+                        break
+        files = getOrderFiles()
+        if len(files) > 0:
+            values = worksheet.values().get(spreadsheetId=sheetId, range=f"{sheetName}!A1:Z").execute().get('values')
+            header = values.pop(0)
+            indexOfHorseHeader = header.index('Horse')
+            for file in files:
+                updateGSData(file, sheetId, sheetName, indexOfHorseHeader, values, multichoices)
+                file_cnt += 1
+    # except:
+    #     print("There is no <mult choices> sheet!")
 
-start("13b-fBnZpZFC_PTTuJ0Y9pYA-UYIgbsUDCCHjga5RBzs", "horses")
+# start("13b-fBnZpZFC_PTTuJ0Y9pYA-UYIgbsUDCCHjga5RBzs", "horses", 0)
